@@ -69,12 +69,15 @@ export async function reconcileGhl(hours: number) {
   const deadline = Date.now() + TIME_BUDGET_MS;
   const sinceMs = Date.now() - hours * 3_600_000;
 
-  // Contactos que aún no pasaron por la sync de estado (p. ej. los anteriores a esa columna):
-  // barrido completo, una sola vez; después vuelve a la ventana normal.
-  const fullSweep = await hasContactsWithoutGeo();
+  // Barrido completo de contactos: en la primera corrida de una instalación nueva (la base está vacía,
+  // así que no hay "pendientes") y cuando hay contactos que aún no pasaron por la sync de estado.
+  // Después vuelve a la ventana normal.
+  const initialSweep = (await getState("contacts_initial_sweep_done")) !== "1";
+  const fullSweep = initialSweep || (await hasContactsWithoutGeo());
   const contacts = await searchContactsUpdatedSince(fullSweep ? null : new Date(sinceMs).toISOString());
   await upsertContacts(contacts);
   if (fullSweep) await markGeoSynced();
+  if (initialSweep) await setState("contacts_initial_sweep_done", "1");
   await saveStateDiagnostics();
 
   const opportunities = await upsertOpportunities(await listOpportunities());
