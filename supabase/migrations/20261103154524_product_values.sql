@@ -13,4 +13,4 @@ alter table public.product_values enable row level security;
 create policy "authenticated_read" on public.product_values for select to authenticated using (true);
 -- Escribe solo el backend (Server Action con sesión verificada + service role)
 
-insert into public.product_values (name, keyword) values ('IUL', 'IUL'), ('Reclutamiento', 'Reclutamiento');
+-- Sin uso en Right Works (se retiró la pantalla de proyecciones): la tabla queda vacía.
