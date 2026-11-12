@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CampaignToggle } from "@/app/_components/campaign-toggle";
-import { campaignAgeDays, campaignCaveat, fmtAge, LEARNING_DAYS, MIN_LEADS } from "@/lib/campaign-age";
+import { campaignAgeDays, fmtAge, LEARNING_DAYS } from "@/lib/campaign-age";
 import { fmtInt, fmtMoney } from "@/lib/format";
 import type { Campaign, RollupRow } from "@/lib/metrics";
 
@@ -34,20 +34,15 @@ const STATUS_LABELS: Record<string, string> = {
   DELETED: "Eliminada",
 };
 
-/** Etiqueta para campañas con cifras aún orientativas: "Nueva · 3 d" o "Pocos leads". */
+/** Etiqueta "Poco tiempo encendida · N d": solo campañas activas o con gasto con menos de LEARNING_DAYS días. */
 export function NewCampaignBadge({ row }: { row: CampaignView }) {
   const running = row.catalog?.status === "ACTIVE" || (row.metrics?.spend ?? 0) > 0;
-  const caveat = running ? campaignCaveat(row.catalog, row.metrics?.leads_ghl ?? 0) : null;
-  if (!caveat) return null;
-  const young = caveat.newCampaign && caveat.age !== null;
-  const label = young ? `Poco tiempo encendida · ${caveat.age === 0 ? "hoy" : `${caveat.age} d`}` : "Cifras orientativas";
-  const why = young
-    ? `lleva ${caveat.age === 0 ? "menos de un día" : fmtAge(caveat.age!)} encendida (menos de ${LEARNING_DAYS})`
-    : `tiene ${row.metrics?.leads_ghl ?? 0} leads en el rango (menos de ${MIN_LEADS})`;
+  const age = running ? campaignAgeDays(row.catalog) : null;
+  if (age === null || age >= LEARNING_DAYS) return null;
   return (
-    <span title={`Cifras orientativas: ${why}.`}
+    <span title={`Cifras orientativas: lleva ${age === 0 ? "menos de un día" : fmtAge(age)} encendida (menos de ${LEARNING_DAYS}).`}
       className="ml-1.5 inline-flex shrink-0 items-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-warning-ink">
-      {label}
+      Poco tiempo encendida · {age === 0 ? "hoy" : `${age} d`}
     </span>
   );
 }

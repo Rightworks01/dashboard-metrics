@@ -89,6 +89,7 @@ const campaignRow = z.object({
   daily_budget: ratio,
   start_time: z.string().nullable().optional(),
   created_time: z.string().nullable().optional(),
+  first_spend_date: z.string().nullable().optional(),
   synced_at: z.string(),
 });
 
@@ -97,9 +98,18 @@ export type Campaign = z.infer<typeof campaignRow>;
 /** Catálogo de campañas (nombre + estado en Meta), sincronizado por sync-meta-ads. */
 export async function getCampaigns(): Promise<Campaign[]> {
   const supabase = await supabaseServer();
-  const { data, error } = await supabase.from("meta_campaigns").select("*").order("name");
+  const [{ data, error }, { data: days, error: daysError }] = await Promise.all([
+    supabase.from("meta_campaigns").select("*").order("name"),
+    // Primer día con datos por campaña: respaldo de la fecha de inicio si Meta aún no la dio
+    supabase.from("meta_ads_daily").select("campaign_id, date").order("date").limit(10000),
+  ]);
   if (error) throw new Error(`meta_campaigns: ${error.message}`);
-  return z.array(campaignRow).parse(data ?? []);
+  if (daysError) throw new Error(`meta_ads_daily: ${daysError.message}`);
+  const firstDay = new Map<string, string>();
+  for (const d of (days ?? []) as { campaign_id: string | null; date: string }[]) {
+    if (d.campaign_id && !firstDay.has(d.campaign_id)) firstDay.set(d.campaign_id, d.date);
+  }
+  return z.array(campaignRow).parse((data ?? []).map((c) => ({ ...c, first_spend_date: firstDay.get(c.id) ?? null })));
 }
 
 export type CampaignOption = { id: string; name: string; spend: number; active: boolean };

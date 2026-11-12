@@ -120,12 +120,12 @@ Ver `.env.example` (el original venía truncado en esta sección).
 - Responsive: en celular el `PageHeader` pone atajos a todo el ancho y fechas + Aplicar en una fila; la
   tabla de Leads se desplaza con la 1ª columna fija. Los contenedores `overflow-x-auto` llevan `relative`
   (si no, los `sr-only` absolutos de dentro escapan y ensanchan la página en celular).
-- **Cifras orientativas por campaña** (migración `campaign_start`: `meta_campaigns.start_time/created_time` de Meta;
-  `lib/campaign-age.ts`): una campaña activa o con gasto con menos de `LEARNING_DAYS` = 7 días o menos de `MIN_LEADS` = 30
-  leads en el rango lleva la etiqueta "Poco tiempo encendida · N d" / "Cifras orientativas" en las tablas (tooltip
-  de una frase). `NewCampaignsNote` (`campaigns-table.tsx`) avisa en Resumen y Campañas SOLO por tiempo (< 7 días
-  encendida): CPL variable (fase de aprendizaje) y costo por cita/ganado inflado (cohorte sin madurar). Si el rango llega a los últimos `MATURATION_DAYS` = 7 días, el Resumen
-  añade bajo los KPIs que esas citas se irán sumando.
+- **Campañas con poco tiempo encendidas** (migración `campaign_start`: `meta_campaigns.start_time/created_time` de
+  Meta; respaldo: primer día en `meta_ads_daily`, `first_spend_date` en `getCampaigns`; `lib/campaign-age.ts`): SOLO
+  por tiempo, nunca por volumen. Activa o con gasto y con menos de `LEARNING_DAYS` = 7 días → etiqueta
+  "Poco tiempo encendida · N d" en las tablas (tooltip de una frase) y `NewCampaignsNote` (`campaigns-table.tsx`) en
+  Resumen y Campañas: CPL variable (fase de aprendizaje) y costo por cita/ganado inflado (cohorte sin madurar). Si el
+  rango llega a los últimos `MATURATION_DAYS` = 7 días, el Resumen añade bajo los KPIs que esas citas se irán sumando.
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y
