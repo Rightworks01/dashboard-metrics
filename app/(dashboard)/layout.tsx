@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import { MetaLinkBanner } from "@/app/_components/meta-link-banner";
 import { Sidebar } from "@/app/_components/sidebar";
 import { signOut } from "@/app/login/actions";
 import { myAccess } from "@/lib/auth";
@@ -32,7 +33,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <Sidebar email={access.email || null} adsAccess={access.canSeeAds} agentOnly={!!access.agentId} isAdmin={access.isAdmin} />
       </Suspense>
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">{children}</div>
+        <div className="mx-auto max-w-7xl">
+          {/* Solo quien ve todo: un miembro limitado a un agente no ve todos los contactos (daría falsa alarma) */}
+          {!access.agentId && <Suspense><MetaLinkBanner /></Suspense>}
+          {children}
+        </div>
       </main>
     </div>
   );
