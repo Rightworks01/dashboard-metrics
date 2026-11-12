@@ -6,8 +6,10 @@ import { Funnel } from "@/app/_components/funnel";
 import { Card, ErrorNote, Kpi, LegendDot, PageHeader } from "@/app/_components/ui";
 import { fmtDay, fmtInt, fmtMoney, fmtPct } from "@/lib/format";
 import { agentScope, canSeeAds } from "@/lib/auth";
+import { MATURATION_DAYS } from "@/lib/campaign-age";
+import { viewerToday } from "@/lib/viewer-zone";
 import { logError } from "@/lib/log";
-import { getCampaignOptions, getCampaigns, getRollup, campQuery, resolveCampaignScope, previousRange, resolveRange, type Campaign, type CampaignOption, type RollupRow } from "@/lib/metrics";
+import { getCampaignOptions, getCampaigns, getRollup, campQuery, resolveCampaignScope, previousRange, resolveRange, shiftDays, type Campaign, type CampaignOption, type RollupRow } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +56,9 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   const rangeDays = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
   const spendDays = days.filter((d) => d.spend > 0).length;
   const thinData = spendDays > 0 && rangeDays < MIN_DAYS;
+  // Citas por cohorte: si el rango llega a los últimos días, esos leads todavía pueden agendar.
+  const today = await viewerToday();
+  const recentLeads = (total?.leads_ghl ?? 0) > 0 && to >= shiftDays(today, -(MATURATION_DAYS - 1));
   const daily = days.map((r) => ({ date: r.key, spend: r.spend, leads_ghl: r.leads_ghl, opps_appointment: r.opps_appointment }));
   const qs = `?from=${from}&to=${to}${campQuery(scope)}`;
   const leadsHref = (etapa?: string) => `/leads${qs}${etapa ? `&etapa=${etapa}` : ""}`;
@@ -81,6 +86,9 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
         </div>
         <p className="mt-2 text-xs text-ink-3">
           ▲▼ frente al {fmtDay(prev.from)} – {fmtDay(prev.to)}. En costos, bajar es bueno.
+          {recentLeads && (
+            <> Los leads de los últimos {MATURATION_DAYS} días todavía pueden agendar o cerrar: sus citas y ganados se irán sumando, y el costo por cita y por ganado de este rango bajará.</>
+          )}
         </p>
         <NewCampaignsNote rows={mergeCampaigns(catalog, byCampaign).filter((c) => !camps.length || camps.includes(c.id))} className="mt-3" />
         {thinData && (
