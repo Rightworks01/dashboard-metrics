@@ -39,11 +39,11 @@ export function NewCampaignBadge({ row }: { row: CampaignView }) {
   const running = row.catalog?.status === "ACTIVE" || (row.metrics?.spend ?? 0) > 0;
   const caveat = running ? campaignCaveat(row.catalog, row.metrics?.leads_ghl ?? 0) : null;
   if (!caveat) return null;
-  const label = caveat.newCampaign && caveat.age !== null ? `Nueva · ${caveat.age === 0 ? "hoy" : `${caveat.age} d`}` : "Pocos leads";
-  const why = [
-    caveat.newCampaign && caveat.age !== null && `lleva ${fmtAge(caveat.age)} (menos de ${LEARNING_DAYS})`,
-    caveat.fewLeads && `tiene ${row.metrics?.leads_ghl ?? 0} leads en el rango (menos de ${MIN_LEADS})`,
-  ].filter(Boolean).join(" y ");
+  const young = caveat.newCampaign && caveat.age !== null;
+  const label = young ? `Poco tiempo encendida · ${caveat.age === 0 ? "hoy" : `${caveat.age} d`}` : "Cifras orientativas";
+  const why = young
+    ? `lleva ${caveat.age === 0 ? "menos de un día" : fmtAge(caveat.age!)} encendida (menos de ${LEARNING_DAYS}). Meta todavía está en fase de aprendizaje y sus leads aún no tuvieron tiempo de agendar ni cerrar`
+    : `tiene ${row.metrics?.leads_ghl ?? 0} leads en el rango (menos de ${MIN_LEADS})`;
   return (
     <span title={`Cifras orientativas: ${why}. El CPL todavía es variable y el costo por cita y por ganado sale inflado.`}
       className="ml-1.5 inline-flex shrink-0 items-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-warning-ink">
@@ -73,13 +73,13 @@ export function NewCampaignsNote({ rows, className = "" }: { rows: CampaignView[
       <div className="space-y-1">
         <p>
           <strong>Cifras orientativas</strong> en {flagged.length === 1 ? "esta campaña" : `${flagged.length} campañas`}{" "}
-          (menos de {LEARNING_DAYS} días o menos de {MIN_LEADS} leads):{" "}
+          (poco tiempo encendida —menos de {LEARNING_DAYS} días— o menos de {MIN_LEADS} leads):{" "}
           {list.map((r, i) => (
             <span key={r.name}>
               {i > 0 && ", "}
               <strong>{r.name}</strong>{" "}
               <span className="tabular-nums text-ink-2">
-                ({[r.caveat.newCampaign && r.caveat.age !== null && fmtAge(r.caveat.age), `${r.leads} ${r.leads === 1 ? "lead" : "leads"}`].filter(Boolean).join(" · ")})
+                ({[r.caveat.newCampaign && r.caveat.age !== null && (r.caveat.age === 0 ? "encendida hoy" : `${fmtAge(r.caveat.age)} encendida`), `${r.leads} ${r.leads === 1 ? "lead" : "leads"}`].filter(Boolean).join(" · ")})
               </span>
             </span>
           ))}
