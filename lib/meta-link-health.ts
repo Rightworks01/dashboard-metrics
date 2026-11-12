@@ -40,5 +40,5 @@ export async function metaLinkHealth(now = new Date()): Promise<MetaLinkHealth |
 
 /** Página de Integraciones de la subcuenta en GHL (ahí se reconecta Facebook). */
 export function ghlIntegrationsUrl(): string {
-  return `${process.env.GHL_APP_URL ?? "https://app.gohighlevel.com"}/v2/location/${process.env.GHL_LOCATION_ID ?? ""}/settings/integrations`;
+  return `${process.env.GHL_APP_URL ?? "https://app.gohighlevel.com"}/v2/location/${process.env.GHL_LOCATION_ID ?? ""}/settings/lc-integrations`;
 }
