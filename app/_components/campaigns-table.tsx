@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CampaignToggle } from "@/app/_components/campaign-toggle";
-import { campaignCaveat, fmtAge, LEARNING_DAYS, MIN_LEADS } from "@/lib/campaign-age";
+import { campaignAgeDays, campaignCaveat, fmtAge, LEARNING_DAYS, MIN_LEADS } from "@/lib/campaign-age";
 import { fmtInt, fmtMoney } from "@/lib/format";
 import type { Campaign, RollupRow } from "@/lib/metrics";
 
@@ -42,29 +42,25 @@ export function NewCampaignBadge({ row }: { row: CampaignView }) {
   const young = caveat.newCampaign && caveat.age !== null;
   const label = young ? `Poco tiempo encendida · ${caveat.age === 0 ? "hoy" : `${caveat.age} d`}` : "Cifras orientativas";
   const why = young
-    ? `lleva ${caveat.age === 0 ? "menos de un día" : fmtAge(caveat.age!)} encendida (menos de ${LEARNING_DAYS}). Meta todavía está en fase de aprendizaje y sus leads aún no tuvieron tiempo de agendar ni cerrar`
+    ? `lleva ${caveat.age === 0 ? "menos de un día" : fmtAge(caveat.age!)} encendida (menos de ${LEARNING_DAYS})`
     : `tiene ${row.metrics?.leads_ghl ?? 0} leads en el rango (menos de ${MIN_LEADS})`;
   return (
-    <span title={`Cifras orientativas: ${why}. El CPL todavía es variable y el costo por cita y por ganado sale inflado.`}
+    <span title={`Cifras orientativas: ${why}.`}
       className="ml-1.5 inline-flex shrink-0 items-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-warning-ink">
       {label}
     </span>
   );
 }
 
-/**
- * Aviso cuando alguna de las campañas mostradas (activas o con gasto) tiene cifras aún orientativas:
- * menos de LEARNING_DAYS días o menos de MIN_LEADS leads en el rango.
- */
+/** Aviso cuando alguna de las campañas mostradas (activas o con gasto) lleva menos de LEARNING_DAYS días encendida. */
 export function NewCampaignsNote({ rows, className = "" }: { rows: CampaignView[]; className?: string }) {
-  const flagged = rows
+  const young = rows
     .filter((r) => r.catalog?.status === "ACTIVE" || (r.metrics?.spend ?? 0) > 0)
-    .map((r) => ({ name: r.name, leads: r.metrics?.leads_ghl ?? 0, caveat: campaignCaveat(r.catalog, r.metrics?.leads_ghl ?? 0) }))
-    .filter((r): r is { name: string; leads: number; caveat: NonNullable<ReturnType<typeof campaignCaveat>> } => r.caveat !== null)
-    .sort((a, b) => (a.caveat.age ?? 999) - (b.caveat.age ?? 999) || a.leads - b.leads);
-  if (flagged.length === 0) return null;
-  const list = flagged.slice(0, 4);
-  const anyNew = flagged.some((r) => r.caveat.newCampaign);
+    .map((r) => ({ name: r.name, age: campaignAgeDays(r.catalog) }))
+    .filter((r): r is { name: string; age: number } => r.age !== null && r.age < LEARNING_DAYS)
+    .sort((a, b) => a.age - b.age);
+  if (young.length === 0) return null;
+  const list = young.slice(0, 4);
   return (
     <div role="note" className={`flex items-start gap-2.5 rounded-xl border border-warning-ink/30 bg-warning-soft px-4 py-3 text-sm text-ink ${className}`}>
       <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 size-4 shrink-0 fill-current text-warning-ink">
@@ -72,22 +68,18 @@ export function NewCampaignsNote({ rows, className = "" }: { rows: CampaignView[
       </svg>
       <div className="space-y-1">
         <p>
-          <strong>Cifras orientativas</strong> en {flagged.length === 1 ? "esta campaña" : `${flagged.length} campañas`}{" "}
-          (poco tiempo encendida —menos de {LEARNING_DAYS} días— o menos de {MIN_LEADS} leads):{" "}
+          <strong>Poco tiempo encendida</strong> {young.length === 1 ? "esta campaña" : `${young.length} campañas`} (menos de {LEARNING_DAYS} días):{" "}
           {list.map((r, i) => (
             <span key={r.name}>
               {i > 0 && ", "}
               <strong>{r.name}</strong>{" "}
-              <span className="tabular-nums text-ink-2">
-                ({[r.caveat.newCampaign && r.caveat.age !== null && (r.caveat.age === 0 ? "encendida hoy" : `${fmtAge(r.caveat.age)} encendida`), `${r.leads} ${r.leads === 1 ? "lead" : "leads"}`].filter(Boolean).join(" · ")})
-              </span>
+              <span className="tabular-nums text-ink-2">({r.age === 0 ? "encendida hoy" : `${fmtAge(r.age)} encendida`})</span>
             </span>
           ))}
-          {flagged.length > list.length && ` y ${flagged.length - list.length} más`}.
+          {young.length > list.length && ` y ${young.length - list.length} más`}.
         </p>
         <p className="text-ink-2">
-          El <strong>CPL es variable</strong>: con pocos leads, uno más o menos lo mueve mucho
-          {anyNew ? ", y en los primeros días Meta está en fase de aprendizaje" : ""}. El{" "}
+          El <strong>CPL es variable</strong>: en los primeros días Meta está en fase de aprendizaje. El{" "}
           <strong>costo por cita y por ganado sale inflado</strong>: los leads recientes todavía no tuvieron tiempo de agendar
           o cerrar, y sus citas se irán sumando.
         </p>

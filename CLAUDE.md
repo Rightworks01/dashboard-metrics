@@ -122,9 +122,9 @@ Ver `.env.example` (el original venía truncado en esta sección).
   (si no, los `sr-only` absolutos de dentro escapan y ensanchan la página en celular).
 - **Cifras orientativas por campaña** (migración `campaign_start`: `meta_campaigns.start_time/created_time` de Meta;
   `lib/campaign-age.ts`): una campaña activa o con gasto con menos de `LEARNING_DAYS` = 7 días o menos de `MIN_LEADS` = 30
-  leads en el rango lleva la etiqueta "Nueva · N d" / "Pocos leads" en las tablas, y `NewCampaignsNote`
-  (`campaigns-table.tsx`) avisa en Resumen y Campañas: CPL variable (pocos leads, fase de aprendizaje) y costo por
-  cita/ganado inflado (cohorte sin madurar). Si el rango llega a los últimos `MATURATION_DAYS` = 7 días, el Resumen
+  leads en el rango lleva la etiqueta "Poco tiempo encendida · N d" / "Cifras orientativas" en las tablas (tooltip
+  de una frase). `NewCampaignsNote` (`campaigns-table.tsx`) avisa en Resumen y Campañas SOLO por tiempo (< 7 días
+  encendida): CPL variable (fase de aprendizaje) y costo por cita/ganado inflado (cohorte sin madurar). Si el rango llega a los últimos `MATURATION_DAYS` = 7 días, el Resumen
   añade bajo los KPIs que esas citas se irán sumando.
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
