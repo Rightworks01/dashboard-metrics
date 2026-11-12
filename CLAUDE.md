@@ -130,6 +130,8 @@ Ver `.env.example` (el original venía truncado en esta sección).
   layout; no se muestra a miembros limitados a un agente): GHL no da el estado por API, así que se infiere. En los últimos 2
   días completos UTC, si Meta reporta ≥ 3 leads y GHL recibió menos de la mitad con `meta_ad_id`, banner rojo con botón
   a Integraciones de la subcuenta (`GHL_APP_URL` + `/v2/location/<GHL_LOCATION_ID>/settings/lc-integrations`).
+  Se va solo cuando los leads vuelven a llegar, o al pulsar el botón (cookie `rw-meta-link-dismissed` = último día de la
+  ventana, `meta-link-button.tsx`); al día siguiente la ventana cambia y, si sigue roto, vuelve a salir.
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y
