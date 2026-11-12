@@ -87,6 +87,8 @@ const campaignRow = z.object({
   effective_status: z.string().nullable(),
   objective: z.string().nullable(),
   daily_budget: ratio,
+  start_time: z.string().nullable().optional(),
+  created_time: z.string().nullable().optional(),
   synced_at: z.string(),
 });
 

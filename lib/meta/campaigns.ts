@@ -9,13 +9,15 @@ type MetaCampaign = {
   effective_status?: string;
   objective?: string;
   daily_budget?: string; // en centavos de la moneda de la cuenta
+  start_time?: string;
+  created_time?: string;
 };
 
 type CampaignsPage = { data: MetaCampaign[]; paging?: { next?: string } };
 
 export type CampaignStatus = "ACTIVE" | "PAUSED";
 
-const FIELDS = "id,name,status,effective_status,objective,daily_budget";
+const FIELDS = "id,name,status,effective_status,objective,daily_budget,start_time,created_time";
 
 function toRow(c: MetaCampaign, syncedAt: string): Row {
   return {
@@ -25,6 +27,8 @@ function toRow(c: MetaCampaign, syncedAt: string): Row {
     effective_status: c.effective_status ?? null,
     objective: c.objective ?? null,
     daily_budget: c.daily_budget ? Number(c.daily_budget) / 100 : null,
+    start_time: c.start_time ?? null,
+    created_time: c.created_time ?? null,
     synced_at: syncedAt,
   };
 }

@@ -1,5 +1,5 @@
 import { SyncCampaignsButton } from "@/app/_components/campaign-toggle";
-import { mergeCampaigns, CampaignsTable } from "@/app/_components/campaigns-table";
+import { mergeCampaigns, CampaignsTable, NewCampaignsNote } from "@/app/_components/campaigns-table";
 import { Card, ErrorNote, NoAccessNote, PageHeader } from "@/app/_components/ui";
 import { canControlCampaigns, canSeeAds } from "@/lib/auth";
 import { logError } from "@/lib/log";
@@ -32,6 +32,7 @@ export default async function CampanasPage({ searchParams }: { searchParams: Sea
     return (
       <>
         {header}
+        <NewCampaignsNote rows={all} className="mb-5" />
         <Card title={`Campañas de Meta · ${all.length}`} flush
           subtitle={canControl ? "Pausa o activa campañas directamente en Meta. Activar una campaña empieza a gastar." : "Solo lectura: tu usuario no puede pausar ni activar campañas."}
           aside={canControl ? <SyncCampaignsButton /> : null}>

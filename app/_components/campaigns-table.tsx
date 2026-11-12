@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CampaignToggle } from "@/app/_components/campaign-toggle";
+import { campaignAgeDays, fmtAge, LEARNING_DAYS } from "@/lib/campaign-age";
 import { fmtInt, fmtMoney } from "@/lib/format";
 import type { Campaign, RollupRow } from "@/lib/metrics";
 
@@ -32,6 +33,56 @@ const STATUS_LABELS: Record<string, string> = {
   ARCHIVED: "Archivada",
   DELETED: "Eliminada",
 };
+
+/** Etiqueta "Nueva · 3 d" para campañas en sus primeros días (métricas aún poco representativas). */
+export function NewCampaignBadge({ campaign }: { campaign: Campaign | null }) {
+  const age = campaignAgeDays(campaign);
+  if (age === null || age >= LEARNING_DAYS) return null;
+  return (
+    <span title={`Lleva ${fmtAge(age)} activa. Con menos de ${LEARNING_DAYS} días, Meta está en fase de aprendizaje y los costos por cita y por ganado se ven inflados.`}
+      className="ml-1.5 inline-flex shrink-0 items-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-warning-ink">
+      Nueva · {age === 0 ? "hoy" : `${age} d`}
+    </span>
+  );
+}
+
+/**
+ * Aviso cuando alguna de las campañas mostradas lleva menos de LEARNING_DAYS días: sus métricas
+ * todavía no son representativas. Solo cuenta las activas o con gasto en el rango.
+ */
+export function NewCampaignsNote({ rows, className = "" }: { rows: CampaignView[]; className?: string }) {
+  const young = rows
+    .filter((r) => r.catalog?.status === "ACTIVE" || (r.metrics?.spend ?? 0) > 0)
+    .map((r) => ({ name: r.name, age: campaignAgeDays(r.catalog) }))
+    .filter((r): r is { name: string; age: number } => r.age !== null && r.age < LEARNING_DAYS)
+    .sort((a, b) => a.age - b.age);
+  if (young.length === 0) return null;
+  const list = young.slice(0, 4);
+  return (
+    <div role="note" className={`flex items-start gap-2.5 rounded-xl border border-warning-ink/30 bg-warning-soft px-4 py-3 text-sm text-ink ${className}`}>
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 size-4 shrink-0 fill-current text-warning-ink">
+        <path d="M1 21h22L12 2zm12-3h-2v-2h2zm0-4h-2v-4h2z" />
+      </svg>
+      <div className="space-y-1">
+        <p>
+          <strong>{young.length === 1 ? "Campaña nueva" : `${young.length} campañas nuevas`}</strong> (menos de {LEARNING_DAYS} días):{" "}
+          {list.map((r, i) => (
+            <span key={r.name}>
+              {i > 0 && ", "}
+              <strong>{r.name}</strong> <span className="tabular-nums text-ink-2">({fmtAge(r.age)})</span>
+            </span>
+          ))}
+          {young.length > list.length && ` y ${young.length - list.length} más`}.
+        </p>
+        <p className="text-ink-2">
+          Sus métricas todavía no son confiables: en los primeros días Meta está en fase de aprendizaje y el costo
+          por lead varía mucho, y los leads recientes aún no tuvieron tiempo de agendar o cerrar, así que el
+          <strong> costo por cita y por ganado se ven inflados</strong>. Tómalos como orientativos hasta que cumplan {LEARNING_DAYS} días.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function StatusPill({ campaign }: { campaign: Campaign | null }) {
   if (!campaign) return <span className="text-xs text-ink-3">Sin sincronizar</span>;
@@ -89,7 +140,10 @@ export function CampaignsTable({ rows, canControl, limit, leadsHref }: {
             return (
               <tr key={r.id} className="transition-colors hover:bg-surface-2/50">
                 <td className="max-w-72 px-5 py-3 text-left">
-                  <span className="block truncate font-medium text-ink" title={r.name}>{r.name}</span>
+                  <span className="flex items-center">
+                    <span className="truncate font-medium text-ink" title={r.name}>{r.name}</span>
+                    <NewCampaignBadge campaign={r.catalog} />
+                  </span>
                   <span className="font-mono text-xs text-ink-3">{r.id}</span>
                 </td>
                 <td className="px-3 py-3 text-left"><StatusPill campaign={r.catalog} /></td>

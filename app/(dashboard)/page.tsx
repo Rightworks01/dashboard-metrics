@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { mergeCampaigns, CampaignsTable } from "@/app/_components/campaigns-table";
+import { mergeCampaigns, CampaignsTable, NewCampaignsNote } from "@/app/_components/campaigns-table";
 import { LeadsChart, SpendChart } from "@/app/_components/daily-chart";
 import { Funnel } from "@/app/_components/funnel";
 import { Card, ErrorNote, Kpi, LegendDot, PageHeader } from "@/app/_components/ui";
@@ -82,6 +82,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
         <p className="mt-2 text-xs text-ink-3">
           ▲▼ frente al {fmtDay(prev.from)} – {fmtDay(prev.to)}. En costos, bajar es bueno.
         </p>
+        <NewCampaignsNote rows={mergeCampaigns(catalog, byCampaign).filter((c) => !camps.length || camps.includes(c.id))} className="mt-3" />
         {thinData && (
           <div role="note" className="mt-3 flex items-start gap-2.5 rounded-xl border border-warning-ink/30 bg-warning-soft px-4 py-3 text-sm text-ink">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 size-4 shrink-0 fill-current text-warning-ink">
