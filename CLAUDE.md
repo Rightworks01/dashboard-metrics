@@ -132,6 +132,9 @@ Ver `.env.example` (el original venía truncado en esta sección).
   a Integraciones de la subcuenta (`GHL_APP_URL` + `/v2/location/<GHL_LOCATION_ID>/settings/lc-integrations`).
   Se va solo cuando los leads vuelven a llegar, o al pulsar el botón (cookie `rw-meta-link-dismissed` = último día de la
   ventana, `meta-link-button.tsx`); al día siguiente la ventana cambia y, si sigue roto, vuelve a salir.
+- **Sincronizar a pedido** (solo `is_admin`): botones "GHL" / "Meta" en el pie del menú (`app/_components/sync-buttons.tsx`)
+  → `POST /api/sync?job=ghl|meta` (sesión de Supabase, maxDuration 300): `reconcileGhl(26)` o `syncMetaAds(3)` +
+  `syncMetaCampaigns()`, y después `refreshMetrics()`. Mismo trabajo que los crons, sin CRON_SECRET.
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y

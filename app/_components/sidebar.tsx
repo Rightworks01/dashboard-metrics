@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { SyncButtons } from "@/app/_components/sync-buttons";
 import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { TimeZonePicker } from "@/app/_components/timezone-picker";
 import { signOut } from "@/app/login/actions";
@@ -110,6 +111,7 @@ export function Sidebar({ email, adsAccess, agentOnly, isAdmin }: { email: strin
       </nav>
 
       <div className="hidden border-t border-line px-4 py-3 md:block">
+        {isAdmin && <SyncButtons />}
         <div className="-mx-2 mb-2"><ThemeToggle /></div>
         {/* También en celular (oculto con CSS, pero montado): guarda la zona en uso en la cookie */}
         <div className="mb-3"><TimeZonePicker /></div>
