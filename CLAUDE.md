@@ -135,6 +135,15 @@ Ver `.env.example` (el original venía truncado en esta sección).
 - **Sincronizar a pedido** (solo `is_admin`): botones "GHL" / "Meta" en el pie del menú (`app/_components/sync-buttons.tsx`)
   → `POST /api/sync?job=ghl|meta` (sesión de Supabase, maxDuration 300): `reconcileGhl(26)` o `syncMetaAds(3)` +
   `syncMetaCampaigns()`, y después `refreshMetrics()`. Mismo trabajo que los crons, sin CRON_SECRET.
+- **Reportes** (`/reportes`, solo `is_admin`, menú Administración; migración `report`): formulario (`report-form.tsx`, GET:
+  `fuente`=empresa|paquete|cliente|compartida, `inv`/`monto`/`agente` repetidos, `vmin`/`vmax`, `g=1`) → `buildReport`
+  (`lib/report.ts`) con rollups + `report_agents` (por agente: leads, ≤5 min, sin contacto +24 h, citas, asistió, ganados,
+  valor) + `report_wins`. Valor de un ganado = `won_values.value` (lo carga un ADMIN en la lista de Ganados del reporte,
+  Server Action `reportes/actions.ts`) > `opportunities.value` de GHL > sin valor. Sin valor: punto de equilibrio
+  (inversión ÷ ganados) y, si se da rango, escenarios bajo/esperado/alto. Inversionistas: % por monto; recuperado
+  proporcional y "según quién cerró" (ganados del agente vinculado; los no vinculados se reparten el resto). Resumen en
+  texto + avisos. PDF = `window.print()` con estilos `@media print` en `globals.css` (siempre claro; menú y formulario
+  ocultos); CSV en `/reportes/csv` (mismos parámetros, BOM UTF-8 para Excel).
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y

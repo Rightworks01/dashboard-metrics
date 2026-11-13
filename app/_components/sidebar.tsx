@@ -34,6 +34,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Administración",
     items: [
+      { href: "/reportes", label: "Reportes", admin: true, icon: "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z" },
       { href: "/accesos", label: "Accesos", admin: true, icon: "M12 1 3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5zm0 6a3 3 0 1 1 0 6 3 3 0 0 1 0-6m0 14c-2.5-.8-4.6-2.6-5.7-5 .9-1.4 3.5-2 5.7-2s4.8.6 5.7 2c-1.1 2.4-3.2 4.2-5.7 5" },
     ],
   },
@@ -61,7 +62,7 @@ export function Sidebar({ email, adsAccess, agentOnly, isAdmin }: { email: strin
   };
 
   return (
-    <aside className="z-20 flex shrink-0 flex-col border-line bg-surface max-md:sticky max-md:top-0 max-md:border-b md:sticky md:top-0 md:h-screen md:w-60 md:border-r">
+    <aside className="z-20 flex shrink-0 print:hidden flex-col border-line bg-surface max-md:sticky max-md:top-0 max-md:border-b md:sticky md:top-0 md:h-screen md:w-60 md:border-r">
       <div className="flex items-center justify-between gap-3 px-4 py-3 md:py-5">
         <div className="flex items-center gap-3">
           <Image src="/logo-mark.png" alt="Right Works" width={40} height={40} priority

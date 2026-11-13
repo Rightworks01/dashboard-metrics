@@ -18,7 +18,7 @@ export function MetaLinkDismissable({ windowEnd, href, children }: { windowEnd: 
     setHidden(true);
   };
   return (
-    <div role="alert" className="mb-5 flex flex-col gap-3 rounded-xl border border-critical/40 bg-critical-soft px-4 py-3 text-sm text-ink sm:flex-row sm:items-center sm:justify-between">
+    <div role="alert" className="mb-5 flex print:hidden flex-col gap-3 rounded-xl border border-critical/40 bg-critical-soft px-4 py-3 text-sm text-ink sm:flex-row sm:items-center sm:justify-between">
       {children}
       <a href={href} target="_blank" rel="noopener noreferrer" onClick={dismiss}
         className="inline-flex shrink-0 items-center justify-center rounded-lg bg-critical px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">
