@@ -145,6 +145,16 @@ Ver `.env.example` (el original venía truncado en esta sección).
   proporcional y "según quién cerró" (ganados del agente vinculado; los no vinculados se reparten el resto). Resumen en
   texto + avisos. PDF = `window.print()` con estilos `@media print` en `globals.css` (siempre claro; menú y formulario
   ocultos); CSV en `/reportes/csv` (mismos parámetros, BOM UTF-8 para Excel).
+- **Publicar campañas** (`/publicar`, solo `is_admin`; `lib/meta/publish.ts`, `app/_components/publish-wizard.tsx`):
+  asistente que crea en Meta campaña `OUTCOME_LEADS` + conjunto (formulario instantáneo, `destination_type` ON_AD,
+  presupuesto diario, EE. UU. o estados, idioma, Facebook/Instagram) + anuncios (imagen o video, texto, título,
+  descripción, botón), **todo en PAUSA**; si algo falla borra la campaña creada. Categoría especial obligatoria
+  (Empleo / Productos financieros → sin edad ni género). Opciones (`GET /api/meta/publish`): páginas de
+  `act_x/promote_pages` con su Instagram y formularios (token de la página), estados (`search adgeolocation`) e idiomas.
+  Creativos: el navegador sube directo a Supabase Storage (bucket privado `creatives`, 50 MB, migración
+  `creatives_bucket`) con URL firmada de `POST /api/meta/publish/upload`; el servidor los manda a Meta (imagen →
+  `adimages` en base64; video → `advideos` con `file_url` firmado y espera a `ready`) y luego los borra.
+  Requiere la Página asignada al usuario del sistema de Meta con control total.
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y

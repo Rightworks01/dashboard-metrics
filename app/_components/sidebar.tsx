@@ -20,6 +20,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { href: "/", label: "Resumen", icon: "M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z" },
       { href: "/leads", label: "Leads", agent: true, icon: "M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6m0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13m8 0-.9.1A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.3-4.7-3.5-7-3.5" },
       { href: "/campanas", label: "Campañas", ads: true, icon: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12m0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6" },
+      { href: "/publicar", label: "Publicar", ads: true, admin: true, icon: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" },
       { href: "/anuncios", label: "Anuncios", ads: true, icon: "M3 11v2h3l5 4V7L6 11zm13.5 1A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4M14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6" },
       { href: "/audiencia", label: "Audiencia", agent: true, icon: "M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7m0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5" },
     ],
