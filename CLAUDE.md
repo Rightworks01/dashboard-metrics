@@ -155,6 +155,15 @@ Ver `.env.example` (el original venía truncado en esta sección).
   `creatives_bucket`) con URL firmada de `POST /api/meta/publish/upload`; el servidor los manda a Meta (imagen →
   `adimages` en base64; video → `advideos` con `file_url` firmado y espera a `ready`) y luego los borra.
   Requiere la Página asignada al usuario del sistema de Meta con control total.
+- **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
+  `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`lib/embed.ts`):
+  1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (o el propio dashboard tras el login),
+  o petición interna same-origin; si no, "Esta página solo se puede abrir desde el CRM" (`app/embed/blocked.tsx`).
+  2) `frame-ancestors` con esos dominios solo en `/embed` (`next.config.ts`; el resto sigue con `'none'` + X-Frame-Options DENY).
+  3) `location` = `GHL_LOCATION_ID`. 4) Sesión de admin propia del iframe: `proxy.ts` marca `/embed/*` con el header
+  `x-rw-embed` y `supabaseServer()` usa la cookie `sb-rw-embed` SameSite=None + Secure + Partitioned (CHIPS); login en
+  `/embed/login` (`app/embed/actions.ts`). APIs del asistente re-exportadas en `/embed/api/publish(/upload)`. Safari
+  puede bloquear la sesión en el iframe: el login ofrece abrir `/publicar` en una pestaña.
 - Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y

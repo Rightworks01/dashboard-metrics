@@ -44,7 +44,7 @@ function Section({ n, title, children }: { n: number; title: string; children: R
   );
 }
 
-export function PublishWizard({ options }: { options: Options }) {
+export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded = false }: { options: Options; apiBase?: string; embedded?: boolean }) {
   const firstPage = options.pages[0];
   const [campaignName, setCampaignName] = useState("");
   const [category, setCategory] = useState<Category>("EMPLOYMENT");
@@ -80,7 +80,7 @@ export function PublishWizard({ options }: { options: Options }) {
     }
     updateAd(key, { uploading: true, uploadError: undefined, media: null });
     try {
-      const res = await fetch("/api/meta/publish/upload", {
+      const res = await fetch(`${apiBase}/upload`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: file.name, type: file.type }),
       });
       const body = (await res.json()) as { path?: string; token?: string; error?: string };
@@ -127,7 +127,7 @@ export function PublishWizard({ options }: { options: Options }) {
       ads: ads.map((a) => ({ name: a.name, media: { kind: a.media!.kind, path: a.media!.path }, message: a.message, headline: a.headline, description: a.description, cta: a.cta })),
     };
     try {
-      const res = await fetch("/api/meta/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const res = await fetch(apiBase, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const body = (await res.json()) as { ok?: boolean; error?: string; campaignId?: string; adIds?: string[]; managerUrl?: string };
       setResult(res.ok && body.campaignId ? { ok: true, campaignId: body.campaignId, adIds: body.adIds ?? [], managerUrl: body.managerUrl ?? "" } : { ok: false, error: body.error ?? "Falló la publicación." });
     } catch {
@@ -148,7 +148,7 @@ export function PublishWizard({ options }: { options: Options }) {
         </p>
         <div className="flex flex-wrap gap-2">
           <a href={result.managerUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">Ver en el Administrador de anuncios ↗</a>
-          <a href="/campanas?camp=todas" className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-surface-2">Ir a Campañas</a>
+          <a href="/campanas?camp=todas" {...(embedded ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-surface-2">{embedded ? "Abrir Campañas en el dashboard ↗" : "Ir a Campañas"}</a>
           <button type="button" onClick={() => { setResult(null); setAds([newAd(1)]); setCampaignName(""); setAdsetName(""); }}
             className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-surface-2">Crear otra</button>
         </div>
