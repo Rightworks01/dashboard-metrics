@@ -282,3 +282,83 @@ export async function removeCreatives(paths: string[]): Promise<void> {
   const { error } = await supabaseAdmin().storage.from(CREATIVES_BUCKET).remove(paths);
   if (error) logError("meta.publish.removeCreatives", error, { count: paths.length });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Formularios instantáneos (leadgen_forms de la página). Se crean con el token de la página: el token
+// del usuario del sistema necesita pages_manage_ads (y la página asignada con control total).
+// ---------------------------------------------------------------------------------------------
+
+export const STANDARD_FIELDS = {
+  FULL_NAME: "Nombre completo",
+  PHONE: "Teléfono",
+  EMAIL: "Email",
+  STATE: "Estado",
+  CITY: "Ciudad",
+  ZIP: "Código postal",
+} as const;
+
+export const leadFormSchema = z.object({
+  pageId: z.string().regex(/^\d+$/),
+  name: z.string().trim().min(1).max(200),
+  locale: z.enum(["ES_LA", "ES_ES", "EN_US"]).default("ES_LA"),
+  highIntent: z.boolean().default(false),
+  intro: z.object({ headline: z.string().trim().max(60).default(""), description: z.string().trim().max(800).default("") }),
+  standard: z.array(z.enum(Object.keys(STANDARD_FIELDS) as [keyof typeof STANDARD_FIELDS, ...(keyof typeof STANDARD_FIELDS)[]])).min(1),
+  custom: z.array(z.object({
+    label: z.string().trim().min(1).max(200),
+    options: z.array(z.string().trim().min(1).max(100)).max(20).default([]), // vacío = respuesta corta
+  })).max(10).default([]),
+  privacyUrl: z.url(),
+  privacyText: z.string().trim().max(70).default("Política de privacidad"),
+  thankYou: z.object({
+    title: z.string().trim().min(1).max(60),
+    body: z.string().trim().max(160).default(""),
+    buttonText: z.string().trim().min(1).max(60),
+    websiteUrl: z.url(),
+  }),
+});
+export type LeadFormInput = z.infer<typeof leadFormSchema>;
+
+async function pageAccessToken(pageId: string): Promise<string> {
+  const info = await metaGet<{ access_token?: string }>(pageId, { fields: "access_token" }, "page token");
+  if (!info.access_token) throw new Error("La página no está asignada al usuario del sistema de Meta (sin token de página).");
+  return info.access_token;
+}
+
+export async function createLeadForm(f: LeadFormInput): Promise<{ id: string; name: string }> {
+  const token = await pageAccessToken(f.pageId);
+  const questions: Record<string, unknown>[] = f.standard.map((type) => ({ type }));
+  f.custom.forEach((q, i) => {
+    questions.push({
+      type: "CUSTOM",
+      key: `pregunta_${i + 1}`,
+      label: q.label,
+      ...(q.options.length ? { options: q.options.map((value, j) => ({ value, key: `p${i + 1}_op${j + 1}` })) } : {}),
+    });
+  });
+  const params: Record<string, unknown> = {
+    name: f.name,
+    locale: f.locale,
+    questions,
+    privacy_policy: { url: f.privacyUrl, link_text: f.privacyText },
+    thank_you_page: {
+      title: f.thankYou.title,
+      body: f.thankYou.body || undefined,
+      button_type: "VIEW_WEBSITE",
+      button_text: f.thankYou.buttonText,
+      website_url: f.thankYou.websiteUrl,
+    },
+    is_optimized_for_quality: f.highIntent,
+  };
+  if (f.intro.headline || f.intro.description) {
+    params.context_card = { title: f.intro.headline || f.name, style: "PARAGRAPH_STYLE", content: [f.intro.description || f.intro.headline] };
+  }
+  const body = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined) body.set(k, typeof v === "string" ? v : JSON.stringify(v));
+  body.set("access_token", token);
+  const version = process.env.META_API_VERSION ?? "v23.0";
+  const res = await fetchJson<{ id: string }>(`https://graph.facebook.com/${version}/${f.pageId}/leadgen_forms`, {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body,
+  }, "Meta POST leadgen_forms", () => false);
+  return { id: res.id, name: f.name };
+}

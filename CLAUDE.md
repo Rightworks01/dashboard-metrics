@@ -155,6 +155,12 @@ Ver `.env.example` (el original venía truncado en esta sección).
   `creatives_bucket`) con URL firmada de `POST /api/meta/publish/upload`; el servidor los manda a Meta (imagen →
   `adimages` en base64; video → `advideos` con `file_url` firmado y espera a `ready`) y luego los borra.
   Requiere la Página asignada al usuario del sistema de Meta con control total.
+- **Crear formularios instantáneos** desde Publicar («+ Crear formulario nuevo», `lead-form-builder.tsx` →
+  `POST /api/meta/publish/form` y `/embed/api/publish/form`, `createLeadForm` en `lib/meta/publish.ts`): campos estándar,
+  preguntas propias (claves `pregunta_N`), privacidad, pantalla final, "Mayor intención". Usa el token de la página
+  (necesita `pages_manage_ads`). El formulario nuevo hay que mapearlo en GHL (Facebook → mapeo de formularios) para que
+  el estado llegue a `contact.estado`.
+- **CPC** (inversión ÷ clics) en la tabla de Anuncios, junto al CTR, ordenable (`rollupRow` en `lib/metrics.ts`).
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
   `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`lib/embed.ts`):
   1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (app.rightworksinsurance.com y app.gohighlevel.com) (o el propio dashboard tras el login),

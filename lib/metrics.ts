@@ -30,7 +30,7 @@ const rollupRow = z.object({
   cost_per_won: ratio,
   response_rate: ratio,
   ctr: ratio,
-});
+}).transform((r) => ({ ...r, cpc: r.clicks > 0 ? r.spend / r.clicks : null })); // costo por clic (Meta)
 
 export type RollupRow = z.infer<typeof rollupRow>;
 
@@ -234,7 +234,7 @@ export function rangePresets(today: string) {
 }
 
 export const SORTABLE_COLUMNS = [
-  "spend", "ctr", "leads_reported", "leads_ghl", "cpl_real", "response_rate",
+  "spend", "ctr", "cpc", "leads_reported", "leads_ghl", "cpl_real", "response_rate",
   "opps_appointment", "cost_per_appointment", "opps_won", "cost_per_won",
 ] as const;
 export type SortColumn = (typeof SORTABLE_COLUMNS)[number];

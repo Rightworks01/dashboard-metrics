@@ -7,6 +7,7 @@ type Column = { key: SortColumn; label: string; fmt: (r: RollupRow) => string; g
 const COLUMNS: Column[] = [
   { key: "spend", label: "Inversión", fmt: (r) => fmtMoney(r.spend), group: "meta" },
   { key: "ctr", label: "CTR", fmt: (r) => fmtPct(r.ctr), group: "meta" },
+  { key: "cpc", label: "CPC", fmt: (r) => fmtMoney(r.cpc), group: "meta" },
   { key: "leads_reported", label: "Leads Meta", fmt: (r) => fmtInt(r.leads_reported), group: "meta" },
   { key: "leads_ghl", label: "Leads reales", fmt: (r) => fmtInt(r.leads_ghl), group: "real" },
   { key: "cpl_real", label: "CPL real", fmt: (r) => fmtMoney(r.cpl_real), group: "real" },

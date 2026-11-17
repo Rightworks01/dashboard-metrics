@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
+import { LeadFormBuilder } from "./lead-form-builder";
 
 type Options = {
   pages: { id: string; name: string; instagram: { id: string; username: string | null } | null; forms: { id: string; name: string }[]; formsError?: string }[];
@@ -66,7 +67,10 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: true; campaignId: string; adIds: string[]; managerUrl: string } | { ok: false; error: string } | null>(null);
 
-  const page = options.pages.find((p) => p.id === pageId);
+  const [createdForms, setCreatedForms] = useState<Record<string, { id: string; name: string }[]>>({});
+  const [buildingForm, setBuildingForm] = useState(false);
+  const basePage = options.pages.find((p) => p.id === pageId);
+  const page = basePage && { ...basePage, forms: [...(createdForms[basePage.id] ?? []), ...basePage.forms] };
   const visibleRegions = useMemo(
     () => options.regions.filter((r) => r.name.toLowerCase().includes(regionFilter.toLowerCase())),
     [options.regions, regionFilter],
@@ -241,7 +245,7 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div><label className={label} htmlFor="page">Página de Facebook</label>
-            <select id="page" className={input} value={pageId} onChange={(e) => { setPageId(e.target.value); setFormId(options.pages.find((p) => p.id === e.target.value)?.forms[0]?.id ?? ""); }}>
+            <select id="page" className={input} value={pageId} onChange={(e) => { const id = e.target.value; setPageId(id); setBuildingForm(false); setFormId((createdForms[id] ?? options.pages.find((p) => p.id === id)?.forms ?? [])[0]?.id ?? ""); }}>
               {options.pages.length === 0 && <option value="">Sin páginas disponibles</option>}
               {options.pages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select></div>
@@ -251,8 +255,19 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
               {page?.forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             {page?.formsError && <p className="mt-1 text-xs text-critical">No se pudieron leer los formularios: {page.formsError}</p>}
+            {pageId && !buildingForm && (
+              <button type="button" onClick={() => setBuildingForm(true)} className="mt-1 text-sm font-medium text-accent hover:underline">+ Crear formulario nuevo</button>
+            )}
           </div>
         </div>
+        {buildingForm && pageId && (
+          <LeadFormBuilder pageId={pageId} apiBase={apiBase} onCancel={() => setBuildingForm(false)}
+            onCreated={(f) => {
+              setCreatedForms((x) => ({ ...x, [pageId]: [f, ...(x[pageId] ?? [])] }));
+              setFormId(f.id);
+              setBuildingForm(false);
+            }} />
+        )}
         <fieldset className="flex flex-wrap gap-4 text-sm">
           <legend className={label}>Dónde se muestra</legend>
           <label className="inline-flex items-center gap-1.5"><input type="checkbox" checked={facebook} onChange={(e) => setFacebook(e.target.checked)} /> Facebook</label>
