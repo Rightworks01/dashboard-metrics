@@ -33,8 +33,30 @@ function toRow(c: MetaCampaign, syncedAt: string): Row {
   };
 }
 
-/** Copia nombre y estado de las campañas de la cuenta a `meta_campaigns`. */
-export async function syncMetaCampaigns(): Promise<{ campaigns: number }> {
+/**
+ * Zona horaria de la cuenta publicitaria (Meta reporta los días en esa zona). Se guarda en
+ * sync_state.meta_account_timezone y la usa `local_day()` en SQL para agrupar los leads por el mismo día.
+ */
+async function syncAccountTimezone(): Promise<string | null> {
+  const acct = await fetchJson<{ timezone_name?: string }>(
+    graphUrl(`act_${metaAccountId()}`, { fields: "timezone_name" }), {}, "Meta ad account", metaRetryable,
+  );
+  const tz = acct.timezone_name ?? null;
+  if (!tz) return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz }); // valida que sea una zona IANA
+  } catch {
+    return null;
+  }
+  const { error } = await supabaseAdmin()
+    .from("sync_state")
+    .upsert({ key: "meta_account_timezone", value: tz, updated_at: new Date().toISOString() });
+  if (error) throw new Error(`sync_state meta_account_timezone: ${error.message}`);
+  return tz;
+}
+
+/** Copia nombre y estado de las campañas de la cuenta a `meta_campaigns` (y la zona horaria de la cuenta). */
+export async function syncMetaCampaigns(): Promise<{ campaigns: number; timezone: string | null }> {
   const syncedAt = new Date().toISOString();
   const rows: Row[] = [];
   let url: string | undefined = graphUrl(`act_${metaAccountId()}/campaigns`, { fields: FIELDS, limit: "200" });
@@ -44,7 +66,8 @@ export async function syncMetaCampaigns(): Promise<{ campaigns: number }> {
     url = page.paging?.next;
   }
   await upsertRows("meta_campaigns", rows, "id");
-  return { campaigns: rows.length };
+  const timezone = await syncAccountTimezone();
+  return { campaigns: rows.length, timezone };
 }
 
 /**

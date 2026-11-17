@@ -109,7 +109,8 @@ Ver `.env.example` (el original venía truncado en esta sección).
   (sessionStorage `cb-tz-session`; se borra el viejo localStorage `cb-tz`), así que al volver a entrar manda
   otra vez el dispositivo. El selector guarda la zona en uso en la cookie `cb-tz`; con ella el servidor calcula "hoy" (`viewerToday` en
   `lib/viewer-zone.ts`) para el rango por defecto, los atajos y el máximo de fechas. Los días de las
-  métricas y de los filtros de fecha siguen siendo días UTC en SQL. En citas, con la abreviatura de zona (`showZone`). Zona del lead = `contacts.timezone` ({{contact.timezone}} de GHL, migración
+  métricas y de los filtros de fecha son días en la **zona de la cuenta de Meta** (`local_day(ts)` en SQL, migración
+  `account_tz_days`; la zona la guarda `syncMetaCampaigns` en `sync_state.meta_account_timezone`, UTC si falta), igual que Meta. En citas, con la abreviatura de zona (`showZone`). Zona del lead = `contacts.timezone` ({{contact.timezone}} de GHL, migración
   `contact_timezone`): el panel del lead muestra su hora actual y la hora de cada cita para el lead. Teléfono = `contacts.phone`
   (migración `contact_phone`, `phone` de GHL en E.164): en el encabezado del panel, con enlace `tel:` y botón
   Copiar (`copy-button.tsx`; copia el E.164, muestra `fmtPhone`). Si falta, `getContactInfo` lo pide a GHL y lo guarda. Orden por cita (`compareAppointments`): pendientes primero
