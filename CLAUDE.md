@@ -122,8 +122,8 @@ Ver `.env.example` (el original venía truncado en esta sección).
   (si no, los `sr-only` absolutos de dentro escapan y ensanchan la página en celular).
 - **Campañas con poco tiempo encendidas** (migración `campaign_start`: `meta_campaigns.start_time/created_time` de
   Meta; respaldo: primer día en `meta_ads_daily`, `first_spend_date` en `getCampaigns`; `lib/campaign-age.ts`): SOLO
-  por tiempo, nunca por volumen. Activa o con gasto y con menos de `LEARNING_DAYS` = 7 días → etiqueta
-  "Poco tiempo encendida · N d" en las tablas (tooltip de una frase) y `NewCampaignsNote` (`campaigns-table.tsx`) en
+  por tiempo, nunca por volumen. Días de calendario en Pacífico, el de inicio = día 1; activa o con gasto y en los días 1 a 6 (`LEARNING_DAYS` = 7) → etiqueta
+  "Poco tiempo encendida · día N de 7" en las tablas (tooltip de una frase) y `NewCampaignsNote` (`campaigns-table.tsx`) en
   Resumen y Campañas: CPL variable (fase de aprendizaje) y costo por cita/ganado inflado (cohorte sin madurar). Si el
   rango llega a los últimos `MATURATION_DAYS` = 7 días, el Resumen añade bajo los KPIs que esas citas se irán sumando.
 - **Aviso de conexión Facebook → GHL rota** (`lib/meta-link-health.ts`, `app/_components/meta-link-banner.tsx`, en el

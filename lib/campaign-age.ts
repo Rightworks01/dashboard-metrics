@@ -8,13 +8,24 @@ export const MATURATION_DAYS = 7;
 // first_spend_date = primer día con datos en meta_ads_daily: respaldo si Meta aún no dio start_time.
 type WithStart = { start_time?: string | null; created_time?: string | null; first_spend_date?: string | null };
 
-/** Días completos desde el inicio de la campaña (0 = arrancó hoy); null si no se sabe. */
+// Los días se cuentan en el calendario de la zona principal del negocio (Pacífico), como los cuenta una
+// persona: el día en que arrancó es el día 1. Con LEARNING_DAYS = 7, el aviso se ve los días 1 a 6 y
+// desaparece el día 7.
+const AGE_ZONE = "America/Los_Angeles";
+const ymdIn = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: AGE_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(t);
+
+/** Día de campaña (1 = arrancó hoy, 2 = ayer…) en el calendario de AGE_ZONE; null si no se sabe. */
 export function campaignAgeDays(c: WithStart | null | undefined, now = Date.now()): number | null {
-  const start = c?.start_time ?? c?.created_time ?? (c?.first_spend_date ? `${c.first_spend_date}T00:00:00Z` : null);
-  if (!start) return null;
-  const t = Date.parse(start);
-  if (Number.isNaN(t)) return null;
-  return Math.max(0, Math.floor((now - t) / 86_400_000));
+  let startDay: string | null = null;
+  const ts = c?.start_time ?? c?.created_time;
+  if (ts) {
+    const t = Date.parse(ts);
+    if (!Number.isNaN(t)) startDay = ymdIn(t);
+  }
+  startDay ??= c?.first_spend_date ?? null;
+  if (!startDay) return null;
+  const diff = Math.round((Date.parse(`${ymdIn(now)}T00:00:00Z`) - Date.parse(`${startDay}T00:00:00Z`)) / 86_400_000);
+  return Math.max(1, diff + 1);
 }
 
 export function isNewCampaign(c: WithStart | null | undefined, now = Date.now()): boolean {
@@ -22,6 +33,7 @@ export function isNewCampaign(c: WithStart | null | undefined, now = Date.now())
   return age !== null && age < LEARNING_DAYS;
 }
 
-export function fmtAge(days: number): string {
-  return days === 0 ? "hoy" : `${days} ${days === 1 ? "día" : "días"}`;
+/** "día 3 de 7" */
+export function fmtAge(day: number): string {
+  return `día ${day} de ${LEARNING_DAYS}`;
 }

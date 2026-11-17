@@ -40,9 +40,9 @@ export function NewCampaignBadge({ row }: { row: CampaignView }) {
   const age = running ? campaignAgeDays(row.catalog) : null;
   if (age === null || age >= LEARNING_DAYS) return null;
   return (
-    <span title={`Cifras orientativas: lleva ${age === 0 ? "menos de un día" : fmtAge(age)} encendida (menos de ${LEARNING_DAYS}).`}
+    <span title={`Cifras orientativas: va por el ${fmtAge(age)} encendida. El aviso se quita el día ${LEARNING_DAYS}.`}
       className="ml-1.5 inline-flex shrink-0 items-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[11px] font-medium text-warning-ink">
-      Poco tiempo encendida · {age === 0 ? "hoy" : `${age} d`}
+      Poco tiempo encendida · {fmtAge(age)}
     </span>
   );
 }
@@ -68,7 +68,7 @@ export function NewCampaignsNote({ rows, className = "" }: { rows: CampaignView[
             <span key={r.name}>
               {i > 0 && ", "}
               <strong>{r.name}</strong>{" "}
-              <span className="tabular-nums text-ink-2">({r.age === 0 ? "encendida hoy" : `${fmtAge(r.age)} encendida`})</span>
+              <span className="tabular-nums text-ink-2">({fmtAge(r.age)})</span>
             </span>
           ))}
           {young.length > list.length && ` y ${young.length - list.length} más`}.
