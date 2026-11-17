@@ -17,7 +17,7 @@ export const EMBED_COOKIE = {
 };
 
 export function allowedParentOrigins(): string[] {
-  return (process.env.ALLOWED_PARENT_ORIGINS ?? "https://app.rightworksinsurance.com")
+  return (process.env.ALLOWED_PARENT_ORIGINS ?? "https://app.rightworksinsurance.com,https://app.gohighlevel.com")
     .split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean);
 }
 

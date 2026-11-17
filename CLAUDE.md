@@ -157,7 +157,7 @@ Ver `.env.example` (el original venía truncado en esta sección).
   Requiere la Página asignada al usuario del sistema de Meta con control total.
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
   `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`lib/embed.ts`):
-  1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (o el propio dashboard tras el login),
+  1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (app.rightworksinsurance.com y app.gohighlevel.com) (o el propio dashboard tras el login),
   o petición interna same-origin; si no, "Esta página solo se puede abrir desde el CRM" (`app/embed/blocked.tsx`).
   2) `frame-ancestors` con esos dominios solo en `/embed` (`next.config.ts`; el resto sigue con `'none'` + X-Frame-Options DENY).
   3) `location` = `GHL_LOCATION_ID`. 4) Sesión de admin propia del iframe: `proxy.ts` marca `/embed/*` con el header

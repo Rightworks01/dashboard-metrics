@@ -13,7 +13,7 @@ const securityHeaders = [
 
 // /embed (pestaña Publicar como Custom Menu Link de GHL): solo la pueden incrustar los dominios del CRM
 // (ALLOWED_PARENT_ORIGINS, por coma). Sin X-Frame-Options (DENY la bloquearía); frame-ancestors manda.
-const parents = (process.env.ALLOWED_PARENT_ORIGINS ?? "https://app.rightworksinsurance.com")
+const parents = (process.env.ALLOWED_PARENT_ORIGINS ?? "https://app.rightworksinsurance.com,https://app.gohighlevel.com")
   .split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean).join(" ");
 const embedHeaders = [
   { key: "Content-Security-Policy", value: `frame-ancestors ${parents}; base-uri 'self'; form-action 'self'; object-src 'none'` },
