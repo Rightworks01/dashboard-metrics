@@ -1,9 +1,10 @@
-import { TopStates } from "@/app/_components/top-states";
-import { UsMap } from "@/app/_components/us-map";
-import { Card, ErrorNote, PageHeader } from "@/app/_components/ui";
-import { fmtInt } from "@/lib/format";
-import { logError } from "@/lib/log";
-import { getCampaignOptions, getLeadsByState, campQuery, resolveCampaignScope, resolveRange } from "@/lib/metrics";
+import { agentScope } from "@cuentas/auth";
+import { TopStates } from "@visual/componentes/top-states";
+import { UsMap } from "@visual/componentes/us-map";
+import { Card, ErrorNote, PageHeader } from "@visual/componentes/ui";
+import { fmtInt } from "@base/util/format";
+import { logError } from "@base/conexiones/log";
+import { getCampaignOptions, getLeadsByState, campQuery, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Audiencia · Right Works" };
@@ -11,13 +12,14 @@ export const metadata = { title: "Audiencia · Right Works" };
 type SearchParams = Promise<{ from?: string; to?: string; camp?: string }>;
 
 export default async function AudienciaPage({ searchParams }: { searchParams: SearchParams }) {
+  const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
   const params = await searchParams;
   const { from, to } = await resolveRange(params.from, params.to);
   const scope = await resolveCampaignScope(params.camp);
   const camps = scope.ids;
 
   try {
-    const [geo, options] = await Promise.all([getLeadsByState(from, to, camps), getCampaignOptions(from, to)]);
+    const [geo, options] = await Promise.all([getLeadsByState(from, to, camps), getCampaignOptions(from, to, scopeAgent)]);
     const header = <PageHeader title="Audiencia" from={from} to={to} path="/audiencia" scope={scope} options={options} />;
     return (
       <div className="space-y-5">

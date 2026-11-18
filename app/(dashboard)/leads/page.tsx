@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { LeadDetail } from "@/app/_components/lead-detail";
-import { LeadDrawer } from "@/app/_components/lead-drawer";
-import { LeadsTable } from "@/app/_components/leads-table";
-import { UpcomingAppointments } from "@/app/_components/upcoming-appointments";
-import { FilterSelect, type FilterOption } from "@/app/_components/filter-select";
-import { Card, ErrorNote, Kpi, PageHeader } from "@/app/_components/ui";
-import { fmtDuration, fmtInt } from "@/lib/format";
+import { LeadDetail } from "@visual/componentes/lead-detail";
+import { LeadDrawer } from "@visual/componentes/lead-drawer";
+import { LeadsTable } from "@visual/componentes/leads-table";
+import { UpcomingAppointments } from "@visual/componentes/upcoming-appointments";
+import { FilterSelect, type FilterOption } from "@visual/componentes/filter-select";
+import { Card, ErrorNote, Kpi, PageHeader } from "@visual/componentes/ui";
+import { fmtDuration, fmtInt } from "@base/util/format";
 import {
   countLeads, defaultLeadSort, filterLeads, firstContactMs, getContactInfo, getLeads, getUpcomingAppointments, getLeadTimeline, LEAD_FILTERS, parseLeadFilter, parseLeadSort, sortLeads,
   type LeadFilter,
-} from "@/lib/leads";
-import { agentScope } from "@/lib/auth";
-import { logError } from "@/lib/log";
-import { getCampaignOptions, resolveCampaignScope, resolveRange } from "@/lib/metrics";
-import { US_STATES } from "@/lib/us-states";
+} from "@base/datos/leads";
+import { agentScope } from "@cuentas/auth";
+import { logError } from "@base/conexiones/log";
+import { getCampaignOptions, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { US_STATES } from "@base/util/us-states";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Leads · Right Works" };
@@ -48,6 +48,7 @@ function toOptions(counts: Map<string, { label: string; count: number }>, missin
 const isId = (v?: string) => (v && /^[\w-]+$/.test(v) ? v : undefined);
 
 export default async function LeadsPage({ searchParams }: { searchParams: SearchParams }) {
+  const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
   const params = await searchParams;
   const { from, to } = await resolveRange(params.from, params.to);
   const campScope = await resolveCampaignScope(params.camp);
@@ -55,7 +56,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Search
   const filter = parseLeadFilter(params.etapa);
   const ad = isId(params.anuncio);
   // ID del agente en GHL, o "sin" = sin agente asignado. Un usuario limitado a un agente solo ve el suyo.
-  const agent = (await agentScope()) ?? isId(params.agente);
+  const agent = scopeAgent ?? isId(params.agente);
   // Código USPS, o "sin" = leads sin estado reconocible
   const state = params.estado && (params.estado in US_STATES || params.estado === "sin") ? params.estado : undefined;
   const { sort, dir } = parseLeadSort(params.sort, params.dir, filter);
@@ -82,7 +83,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Search
     // se aplican aquí para poder decir "5 de 48" y para los contadores de cada pestaña.
     const [inRange, options, upcoming] = await Promise.all([
       getLeads({ from, to, campaigns: camps, filter: "todos" }),
-      getCampaignOptions(from, to),
+      getCampaignOptions(from, to, scopeAgent),
       // Solo en "Con cita": las citas por venir de cualquier lead (no solo de los que entraron en el rango)
       filter === "cita" ? getUpcomingAppointments({ campaigns: camps, agent }) : Promise.resolve([]),
     ]);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { campaignControlUser } from "@/lib/auth";
-import { logError, logInfo } from "@/lib/log";
-import { syncMetaCampaigns } from "@/lib/meta/campaigns";
+import { campaignControlUser } from "@cuentas/auth";
+import { logError, logInfo } from "@base/conexiones/log";
+import { syncMetaCampaigns } from "@base/conexiones/meta/campaigns";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

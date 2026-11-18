@@ -1,9 +1,13 @@
 import { Suspense, type ReactNode } from "react";
-import { MetaLinkBanner } from "@/app/_components/meta-link-banner";
-import { Sidebar } from "@/app/_components/sidebar";
-import { signOut } from "@/app/login/actions";
-import { myAccess } from "@/lib/auth";
-import { supabaseServer } from "@/lib/supabase/server";
+import { ghlIntegrationsUrl, metaLinkHealth } from "@base/datos/meta-link-health";
+import { MetaLinkBanner } from "@visual/componentes/meta-link-banner";
+import { Sidebar } from "@visual/componentes/sidebar";
+import { signOut } from "@cuentas/login/actions";
+import { NotInTeam } from "@cuentas/pantallas/sin-equipo";
+import { puede, seccionesPermitidas } from "@cuentas/roles";
+import { SyncButtons } from "@base/acciones/sync-buttons";
+import { myAccess } from "@cuentas/auth";
+import { supabaseServer } from "@base/conexiones/supabase/server";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await supabaseServer();
@@ -11,34 +15,27 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Tener sesión no basta: solo entra quien está en `team_members` (se gestiona en /accesos)
   const access = data.user ? await myAccess() : null;
   if (!access) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="card max-w-sm p-6 text-center">
-          <h1 className="text-lg font-semibold text-ink">Sin acceso</h1>
-          <p className="mt-2 text-sm text-ink-2">
-            Tu cuenta{data.user?.email ? ` (${data.user.email})` : ""} no está en el equipo de este dashboard.
-            Pide a un administrador que te dé acceso.
-          </p>
-          <form action={signOut} className="mt-4">
-            <button type="submit" className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-plane hover:opacity-90">Cerrar sesión</button>
-          </form>
-        </div>
-      </main>
-    );
+    return <NotInTeam email={data.user?.email ?? null} />;
   }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <Suspense>
-        <Sidebar email={access.email || null} adsAccess={access.canSeeAds} agentOnly={!!access.agentId} isAdmin={access.isAdmin} />
+        <Sidebar email={access.email || null} allowed={seccionesPermitidas(access)} signOut={signOut}
+          tools={puede(access, "sincronizar") ? <SyncButtons /> : null} />
       </Suspense>
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           {/* Solo quien ve todo: un miembro limitado a un agente no ve todos los contactos (daría falsa alarma) */}
-          {!access.agentId && <Suspense><MetaLinkBanner /></Suspense>}
+          {!access.agentId && <Suspense><MetaLinkBannerLoader /></Suspense>}
           {children}
         </div>
       </main>
     </div>
   );
+}
+
+/** Capa 1 (¿se cortó Facebook → GHL?) → Capa 2 (banner). Aparte, para no frenar la página (Suspense). */
+async function MetaLinkBannerLoader() {
+  return <MetaLinkBanner health={await metaLinkHealth()} href={ghlIntegrationsUrl()} />;
 }

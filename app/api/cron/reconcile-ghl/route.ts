@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { isAuthorizedCron } from "@/lib/cron-auth";
-import { reconcileGhl } from "@/lib/ghl/reconcile";
-import { logError, logInfo } from "@/lib/log";
-import { refreshMetrics } from "@/lib/supabase/admin";
+import { isAuthorizedCron } from "@base/conexiones/cron-auth";
+import { reconcileGhl } from "@base/conexiones/ghl/reconcile";
+import { logError, logInfo } from "@base/conexiones/log";
+import { refreshMetrics } from "@base/conexiones/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

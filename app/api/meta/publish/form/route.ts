@@ -1,7 +1,8 @@
+import { puede } from "@cuentas/roles";
 import { NextResponse } from "next/server";
-import { myAccess } from "@/lib/auth";
-import { logError, logInfo } from "@/lib/log";
-import { createLeadForm, leadFormSchema, metaErrorMessage } from "@/lib/meta/publish";
+import { myAccess } from "@cuentas/auth";
+import { logError, logInfo } from "@base/conexiones/log";
+import { createLeadForm, leadFormSchema, metaErrorMessage } from "@base/conexiones/meta/publish";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 /** Crea un formulario instantáneo en la página (solo admins). */
 export async function POST(req: Request) {
   const access = await myAccess().catch(() => null);
-  if (!access?.isAdmin) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  if (!puede(access, "publicar")) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   const parsed = leadFormSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     const issue = parsed.error.issues[0];

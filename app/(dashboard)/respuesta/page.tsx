@@ -1,9 +1,10 @@
+import { agentScope } from "@cuentas/auth";
 import Link from "next/link";
-import { Card, ErrorNote, Kpi, PageHeader } from "@/app/_components/ui";
-import { fmtDuration, fmtInt, fmtPct } from "@/lib/format";
-import { logError } from "@/lib/log";
-import { getCampaignOptions, campQuery, resolveCampaignScope, resolveRange } from "@/lib/metrics";
-import { getResponseData } from "@/lib/response";
+import { Card, ErrorNote, Kpi, PageHeader } from "@visual/componentes/ui";
+import { fmtDuration, fmtInt, fmtPct } from "@base/util/format";
+import { logError } from "@base/conexiones/log";
+import { getCampaignOptions, campQuery, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { getResponseData } from "@base/datos/response";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Respuesta · Right Works" };
@@ -25,6 +26,7 @@ function RateBar({ value }: { value: number | null }) {
 }
 
 export default async function RespuestaPage({ searchParams }: { searchParams: SearchParams }) {
+  const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
   const params = await searchParams;
   const { from, to } = await resolveRange(params.from, params.to);
   const scope = await resolveCampaignScope(params.camp);
@@ -32,7 +34,7 @@ export default async function RespuestaPage({ searchParams }: { searchParams: Se
   const qs = `from=${from}&to=${to}${campQuery(scope)}`;
 
   try {
-    const [data, options] = await Promise.all([getResponseData(from, to, camps), getCampaignOptions(from, to)]);
+    const [data, options] = await Promise.all([getResponseData(from, to, camps, scopeAgent), getCampaignOptions(from, to, scopeAgent)]);
     const t = data.total;
     return (
       <div className="space-y-5">

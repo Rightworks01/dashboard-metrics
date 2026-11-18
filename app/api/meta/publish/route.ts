@@ -1,8 +1,9 @@
+import { puede } from "@cuentas/roles";
 import { NextResponse } from "next/server";
-import { myAccess } from "@/lib/auth";
-import { logError, logInfo } from "@/lib/log";
-import { syncMetaCampaigns } from "@/lib/meta/campaigns";
-import { getPublishOptions, metaErrorMessage, publishCampaign, publishSchema, removeCreatives } from "@/lib/meta/publish";
+import { myAccess } from "@cuentas/auth";
+import { logError, logInfo } from "@base/conexiones/log";
+import { syncMetaCampaigns } from "@base/conexiones/meta/campaigns";
+import { getPublishOptions, metaErrorMessage, publishCampaign, publishSchema, removeCreatives } from "@base/conexiones/meta/publish";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const maxDuration = 300;
 
 async function admin() {
   const access = await myAccess().catch(() => null);
-  return access?.isAdmin ? access : null;
+  return puede(access, "publicar") ? access : null;
 }
 
 /** Páginas (con Instagram y formularios), estados de EE. UU. e idiomas para el asistente. */

@@ -25,7 +25,10 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
+      ],
+      "@base/*": ["./capa1-base/*"],
+      "@visual/*": ["./capa2-visual/*"],
+      "@cuentas/*": ["./capa3-cuentas/*"]
     }
   },
   "include": [

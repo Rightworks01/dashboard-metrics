@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { safeEqual } from "@/lib/cron-auth";
-import { ghlLocationId } from "@/lib/ghl/client";
-import { ghlWebhookSchema, handleGhlEvent } from "@/lib/ghl/webhook";
-import { logError, logInfo } from "@/lib/log";
+import { safeEqual } from "@base/conexiones/cron-auth";
+import { ghlLocationId } from "@base/conexiones/ghl/client";
+import { ghlWebhookSchema, handleGhlEvent } from "@base/conexiones/ghl/webhook";
+import { logError, logInfo } from "@base/conexiones/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

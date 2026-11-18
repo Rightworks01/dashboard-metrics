@@ -1,10 +1,11 @@
+import { puede } from "@cuentas/roles";
 import { NextResponse } from "next/server";
-import { myAccess } from "@/lib/auth";
-import { reconcileGhl } from "@/lib/ghl/reconcile";
-import { logError, logInfo } from "@/lib/log";
-import { syncMetaCampaigns } from "@/lib/meta/campaigns";
-import { syncMetaAds } from "@/lib/meta/sync";
-import { refreshMetrics } from "@/lib/supabase/admin";
+import { myAccess } from "@cuentas/auth";
+import { reconcileGhl } from "@base/conexiones/ghl/reconcile";
+import { logError, logInfo } from "@base/conexiones/log";
+import { syncMetaCampaigns } from "@base/conexiones/meta/campaigns";
+import { syncMetaAds } from "@base/conexiones/meta/sync";
+import { refreshMetrics } from "@base/conexiones/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export const maxDuration = 300;
 // sesión de Supabase en vez de CRON_SECRET. Ventanas de un run normal: 26 h en GHL, 3 días en Meta.
 export async function POST(req: Request) {
   const access = await myAccess().catch(() => null);
-  if (!access?.isAdmin) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
+  if (!puede(access, "sincronizar")) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 
   const job = new URL(req.url).searchParams.get("job");
   if (job !== "ghl" && job !== "meta") return NextResponse.json({ error: "job inválido" }, { status: 400 });

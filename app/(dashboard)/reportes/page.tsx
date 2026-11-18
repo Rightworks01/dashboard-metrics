@@ -1,11 +1,13 @@
-import { Card, ErrorNote, NoAccessNote, PageHeader } from "@/app/_components/ui";
-import { PrintButton, WinValueForm } from "@/app/_components/report-actions";
-import { ReportForm } from "@/app/_components/report-form";
-import { myAccess } from "@/lib/auth";
-import { fmtDay, fmtInt, fmtMoney, fmtPct, pctChange, fmtSignedPct, titleCase } from "@/lib/format";
-import { logError } from "@/lib/log";
-import { getCampaignOptions, resolveCampaignScope, resolveRange } from "@/lib/metrics";
-import { buildReport, FUNDING, getCrmUsers, parseReportParams, recoveredText, type Recovery, type Report } from "@/lib/report";
+import { accesoA } from "@cuentas/roles";
+import { saveWinValue } from "@cuentas/acciones";
+import { Card, ErrorNote, NoAccessNote, PageHeader } from "@visual/componentes/ui";
+import { PrintButton, WinValueForm } from "@base/acciones/report-actions";
+import { ReportForm } from "@base/acciones/report-form";
+import { myAccess, agentScope } from "@cuentas/auth";
+import { fmtDay, fmtInt, fmtMoney, fmtPct, pctChange, fmtSignedPct, titleCase } from "@base/util/format";
+import { logError } from "@base/conexiones/log";
+import { getCampaignOptions, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { buildReport, FUNDING, getCrmUsers, parseReportParams, recoveredText, type Recovery, type Report } from "@base/datos/report";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Reportes · Right Works" };
@@ -14,8 +16,8 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 export default async function ReportesPage({ searchParams }: { searchParams: SearchParams }) {
-  const access = await myAccess();
-  if (!access?.isAdmin) return <NoAccessNote what="Reportes" />;
+  const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
+  if (!(await accesoA("reportes"))) return <NoAccessNote what="Reportes" />;
   const raw = await searchParams;
   const { from, to } = await resolveRange(one(raw.from), one(raw.to));
   const scope = await resolveCampaignScope(one(raw.camp));
@@ -26,7 +28,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Sea
   let options: Awaited<ReturnType<typeof getCampaignOptions>> = [];
   let report: Report | null = null;
   try {
-    [agents, options] = await Promise.all([getCrmUsers(), getCampaignOptions(from, to)]);
+    [agents, options] = await Promise.all([getCrmUsers(), getCampaignOptions(from, to, scopeAgent)]);
     if (generate) report = await buildReport(from, to, scope.ids, params);
   } catch (error) {
     logError("dashboard.reportes", error, { from, to });
@@ -275,7 +277,7 @@ function ReportView({ report: r, csvHref, campaignsLabel }: { report: Report; cs
                   <td className={`${td} max-w-56 truncate text-left text-ink-2`} title={w.campaign_name ?? ""}>{w.campaign_name ?? "—"}</td>
                   <td className={td}>{w.won_at ? fmtDay(w.won_at.slice(0, 10)) : "—"}</td>
                   <td className={td}>{w.value !== null ? <>{fmtMoney(w.value)}<span className="block text-xs text-ink-3">{w.source === "manual" ? "cargado" : "de GHL"}</span></> : <span className="text-ink-3">sin valor</span>}</td>
-                  <td className={`${td} pr-5 print:hidden`}><WinValueForm opportunityId={w.opportunity_id} value={w.value_manual} /></td>
+                  <td className={`${td} pr-5 print:hidden`}><WinValueForm opportunityId={w.opportunity_id} value={w.value_manual} save={saveWinValue} /></td>
                 </tr>
               ))}
               {r.wins.length === 0 && <tr><td colSpan={6} className="px-5 py-4 text-left text-ink-3">Todavía no hay ganados de los leads de este período.</td></tr>}

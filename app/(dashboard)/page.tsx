@@ -1,24 +1,26 @@
+import { accesoA } from "@cuentas/roles";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { mergeCampaigns, CampaignsTable, NewCampaignsNote } from "@/app/_components/campaigns-table";
-import { LeadsChart, SpendChart } from "@/app/_components/daily-chart";
-import { Funnel } from "@/app/_components/funnel";
-import { Card, ErrorNote, Kpi, LegendDot, PageHeader } from "@/app/_components/ui";
-import { fmtDay, fmtInt, fmtMoney, fmtPct } from "@/lib/format";
-import { agentScope, canSeeAds } from "@/lib/auth";
-import { MATURATION_DAYS } from "@/lib/campaign-age";
-import { viewerToday } from "@/lib/viewer-zone";
-import { logError } from "@/lib/log";
-import { getCampaignOptions, getCampaigns, getRollup, campQuery, resolveCampaignScope, previousRange, resolveRange, shiftDays, type Campaign, type CampaignOption, type RollupRow } from "@/lib/metrics";
+import { mergeCampaigns, CampaignsTable, NewCampaignsNote } from "@visual/componentes/campaigns-table";
+import { LeadsChart, SpendChart } from "@visual/componentes/daily-chart";
+import { Funnel } from "@visual/componentes/funnel";
+import { Card, ErrorNote, Kpi, LegendDot, PageHeader } from "@visual/componentes/ui";
+import { fmtDay, fmtInt, fmtMoney, fmtPct } from "@base/util/format";
+import { agentScope, canSeeAds } from "@cuentas/auth";
+import { MATURATION_DAYS } from "@base/util/campaign-age";
+import { viewerToday } from "@base/util/viewer-zone";
+import { logError } from "@base/conexiones/log";
+import { getCampaignOptions, getCampaigns, getRollup, campQuery, resolveCampaignScope, previousRange, resolveRange, shiftDays, type Campaign, type CampaignOption, type RollupRow } from "@base/datos/metrics";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ from?: string; to?: string; camp?: string }>;
 
 export default async function ResumenPage({ searchParams }: { searchParams: SearchParams }) {
+  const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
   const params = await searchParams;
   // El Resumen agrega todos los leads: quien está limitado a un agente va directo a sus Leads.
-  if (await agentScope()) redirect(`/leads${params.from && params.to ? `?from=${params.from}&to=${params.to}` : ""}`);
+  if (!(await accesoA("resumen"))) redirect(`/leads${params.from && params.to ? `?from=${params.from}&to=${params.to}` : ""}`);
   const { from, to } = await resolveRange(params.from, params.to);
   const prev = previousRange(from, to);
   const scope = await resolveCampaignScope(params.camp);
@@ -40,7 +42,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
       getRollup(from, to, "day", camps),
       getRollup(from, to, "campaign", camps),
       getCampaigns(),
-      getCampaignOptions(from, to),
+      getCampaignOptions(from, to, scopeAgent),
     ]);
     total = t[0] ?? null;
     previous = p[0] ?? null;

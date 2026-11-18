@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { isAuthorizedCron } from "@/lib/cron-auth";
-import { logError, logInfo } from "@/lib/log";
-import { syncMetaCampaigns } from "@/lib/meta/campaigns";
-import { syncMetaAds } from "@/lib/meta/sync";
-import { refreshMetrics, supabaseAdmin } from "@/lib/supabase/admin";
+import { isAuthorizedCron } from "@base/conexiones/cron-auth";
+import { logError, logInfo } from "@base/conexiones/log";
+import { syncMetaCampaigns } from "@base/conexiones/meta/campaigns";
+import { syncMetaAds } from "@base/conexiones/meta/sync";
+import { refreshMetrics, supabaseAdmin } from "@base/conexiones/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

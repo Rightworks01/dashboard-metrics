@@ -1,15 +1,15 @@
-import { PublishWizard } from "@/app/_components/publish-wizard";
-import { ErrorNote, NoAccessNote } from "@/app/_components/ui";
-import { myAccess } from "@/lib/auth";
-import { logError } from "@/lib/log";
-import { getPublishOptions, type PublishOptions } from "@/lib/meta/publish";
+import { accesoA } from "@cuentas/roles";
+import { PublishWizard } from "@base/acciones/publish-wizard";
+import { ErrorNote, NoAccessNote } from "@visual/componentes/ui";
+import { myAccess } from "@cuentas/auth";
+import { logError } from "@base/conexiones/log";
+import { getPublishOptions, type PublishOptions } from "@base/conexiones/meta/publish";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Publicar campaña · Right Works" };
 
 export default async function PublicarPage() {
-  const access = await myAccess();
-  if (!access?.isAdmin) return <NoAccessNote what="Publicar campañas" />;
+  if (!(await accesoA("publicar"))) return <NoAccessNote what="Publicar campañas" />;
   let options: PublishOptions;
   try {
     options = await getPublishOptions();

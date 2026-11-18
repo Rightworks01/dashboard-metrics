@@ -1,7 +1,7 @@
-import { PasswordInput } from "@/app/login/password-input";
-import { signInEmbed } from "../actions";
-import { EmbedBlocked } from "../blocked";
-import { embedCheck } from "../context";
+import { PasswordInput } from "@cuentas/login/password-input";
+import { signInEmbed } from "@cuentas/embed/actions";
+import { EmbedBlocked } from "@cuentas/embed/blocked";
+import { embedCheck } from "@cuentas/embed/context";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Entrar · Publicar · Right Works" };

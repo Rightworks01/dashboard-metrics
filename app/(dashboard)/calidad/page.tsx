@@ -1,10 +1,11 @@
+import { accesoA } from "@cuentas/roles";
 import Link from "next/link";
-import { Card, ErrorNote, Kpi, NoAccessNote, PageHeader } from "@/app/_components/ui";
-import { agentScope } from "@/lib/auth";
-import { fmtInt, fmtPct } from "@/lib/format";
-import { getLeads } from "@/lib/leads";
-import { logError } from "@/lib/log";
-import { getCampaignOptions, getCampaigns, getRollup, campQuery, resolveCampaignScope, resolveRange } from "@/lib/metrics";
+import { Card, ErrorNote, Kpi, NoAccessNote, PageHeader } from "@visual/componentes/ui";
+import { agentScope } from "@cuentas/auth";
+import { fmtInt, fmtPct } from "@base/util/format";
+import { getLeads } from "@base/datos/leads";
+import { logError } from "@base/conexiones/log";
+import { getCampaignOptions, getCampaigns, getRollup, campQuery, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calidad de datos · Right Works" };
@@ -15,7 +16,8 @@ const DAY = 86_400_000;
 const ratio = (a: number, b: number) => (b > 0 ? a / b : null);
 
 export default async function CalidadPage({ searchParams }: { searchParams: SearchParams }) {
-  if (await agentScope()) return <NoAccessNote what="Calidad de datos" />;
+  const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
+  if (!(await accesoA("calidad"))) return <NoAccessNote what="Calidad de datos" />;
   const params = await searchParams;
   const { from, to } = await resolveRange(params.from, params.to);
   const scope = await resolveCampaignScope(params.camp);
@@ -27,7 +29,7 @@ export default async function CalidadPage({ searchParams }: { searchParams: Sear
       getLeads({ from, to, campaigns: camps, filter: "todos" }),
       getRollup(from, to, "ad", camps),
       getCampaigns(),
-      getCampaignOptions(from, to),
+      getCampaignOptions(from, to, scopeAgent),
     ]);
     const now = Date.now();
     const noState = leads.filter((l) => !l.state_code);

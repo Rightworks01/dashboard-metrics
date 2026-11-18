@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import "./globals.css";
+import "@visual/estilos/globals.css";
 
 export const metadata = {
   title: "Right Works · Métricas",

@@ -49,6 +49,24 @@ oportunidad y costo por ganado. Volumen: 20–100 leads/día. NO sobre-ingenier�
 ## Variables de entorno requeridas
 Ver `.env.example` (el original venía truncado en esta sección).
 
+## Código en 3 capas (NO mezclar)
+Cada capa se edita por separado; `scripts/check-capas.mjs` lo verifica y corre antes de cada build
+(`npm run check:capas`; si falla, Vercel no publica).
+- **Capa 1 · `capa1-base/`** (alias `@base/`): lo que el dashboard HACE.
+  `conexiones/` (GHL, Meta, Supabase, http, log, env), `datos/` (métricas, leads, reportes, respuesta…: toda la
+  lógica), `util/` (funciones puras: formato, fechas/rangos, estados, citas) y `acciones/` (botones y asistentes
+  que ejecutan algo: sincronizar, pausar campañas, publicar, crear formulario, cargar valores).
+- **Capa 2 · `capa2-visual/`** (alias `@visual/`): cómo SE VE. `estilos/globals.css` (colores/tokens claro-oscuro,
+  impresión) y `componentes/` (tablas, gráficos, mapa, menú, tarjetas). Recibe datos y botones por props.
+- **Capa 3 · `capa3-cuentas/`** (alias `@cuentas/`): QUIÉN entra y QUÉ ve. `roles.ts` = tipos de cuenta y permisos
+  por sección (única fuente: menú, páginas y API usan `puede()` / `accesoA()` / `seccionesPermitidas()`),
+  `auth.ts` (`myAccess`), `proxy.ts` (sesión y /login), `login/`, `accesos/` (consola), `embed/` (iframe de GHL),
+  `acciones.ts` (Server Actions con permiso que llaman a la Capa 1) y `pantallas/`.
+- **`app/`**: solo rutas. Cada página/API conecta las capas (pide permiso a la 3, datos a la 1, dibuja con la 2).
+Reglas: 1) Capa 1 y 2 nunca importan de la 3 (p. ej. el agente al que está limitada la cuenta llega como
+parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 tipos y `util/`.
+3) La 1 no importa de la 2, salvo `acciones/`. 4) Nadie importa de `app/`.
+
 ## Estado actual
 - Migraciones aplicadas: `init` (5 tablas + vista `metrics_creatives_daily`),
   `conversation_flags` (función `recompute_conversation_flags`) y `metrics_rollup`
@@ -62,18 +80,18 @@ Ver `.env.example` (el original venía truncado en esta sección).
 - **Temporal (plan Hobby de Vercel)**: `sync-meta-ads` corre 1 vez al día (04:00 UTC), no cada
   30 min. Hobby solo permite crons diarios y los dispara en algún momento dentro de esa hora.
   Al pasar a Pro, volver a `*/30 * * * *` en `vercel.json`.
-- Lógica de conversaciones agnóstica en `lib/conversations.ts`; el adaptador GHL vive en `lib/ghl/`.
-- Dashboard en `app/(dashboard)/` con menú lateral (`app/_components/sidebar.tsx`, conserva ?from&to):
+- Lógica de conversaciones agnóstica en `capa1-base/datos/conversations.ts`; el adaptador GHL vive en `capa1-base/conexiones/ghl/`.
+- Dashboard en `app/(dashboard)/` con menú lateral (`capa2-visual/componentes/sidebar.tsx`, conserva ?from&to):
   Resumen (`page.tsx`: KPIs con variación vs. período anterior, tendencias, embudo, top campañas),
   Leads (`leads/`: lista con filtros ?etapa=todos|respondio|cita|ganado|sin_contacto, ?anuncio,
   ?agente (ID de GHL o `sin`) y ?estado (código USPS o `sin`), estos dos con selectores
-  (`app/_components/filter-select.tsx`) que cuentan con los demás filtros aplicados,
-  ?sort=entrada|contacto|cita&dir; una sola consulta y filtro/conteo/orden en `lib/leads.ts`
+  (`capa2-visual/componentes/filter-select.tsx`) que cuentan con los demás filtros aplicados,
+  ?sort=entrada|contacto|cita&dir; una sola consulta y filtro/conteo/orden en `capa1-base/datos/leads.ts`
   para los contadores de las pestañas; 4 KPIs arriba; nombres en Title Case solo al mostrar
-  (`titleCase` en `lib/format.ts`); ficha al pasar el mouse con IDs de Meta en `app/_components/lead-card.tsx`;
+  (`titleCase` en `capa1-base/util/format.ts`); ficha al pasar el mouse con IDs de Meta en `capa2-visual/componentes/lead-card.tsx`;
   la etiqueta "Ganado" lleva a la pestaña Ganados con `?foco=<uuid>` (esa fila resaltada y centrada);
   panel lateral de solo lectura con `?lead=<uuid>` (clic en la fila o el nombre): origen en Meta, citas y
-  línea de tiempo de mensajes/llamadas/citas — `lead_timeline(contact)`, `app/_components/lead-detail.tsx`
+  línea de tiempo de mensajes/llamadas/citas — `lead_timeline(contact)`, `capa2-visual/componentes/lead-detail.tsx`
   (servidor) + `lead-drawer.tsx` (cliente: Esc/clic fuera). No escribe en GHL: las acciones son enlaces; enlaces a GHL
   vía `GHL_APP_URL` opcional + `GHL_LOCATION_ID`). Las cifras de leads/citas/ganados en KPIs y tablas
   enlazan a Leads ya filtrado. Datos: `leads_list(...)` (migración `leads_list`).
@@ -82,14 +100,14 @@ Ver `.env.example` (el original venía truncado en esta sección).
   Anuncios (`anuncios/`: tabla Meta vs GHL ordenable por URL) y Audiencia (`audiencia/`: mapa por
   estado), Respuesta (`respuesta/`: 1er contacto humano por agente, % ≤ 5 min, sin contacto, % de
   respuesta por mensaje de la secuencia sin recordatorios — `sequence_reply_stats` —, y llamadas por
-  agente con perdidas devueltas — `call_stats`; lógica por agente en `lib/response.ts`) y Calidad de
+  agente con perdidas devueltas — `call_stats`; lógica por agente en `capa1-base/datos/response.ts`) y Calidad de
   datos (`calidad/`: Meta vs GHL por anuncio, sin estado por campaña, sin contacto > 24 h, sin agente). Piezas compartidas en
-  `app/_components/ui.tsx` (PageHeader, Card, Kpi). Un gráfico por magnitud (nunca doble eje).
-  Datos vía `lib/metrics.ts`. Colores solo con tokens de `globals.css` (claro/oscuro). El tema sigue
-  al sistema salvo que se elija con el interruptor (`app/_components/theme-toggle.tsx`): fija
+  `capa2-visual/componentes/ui.tsx` (PageHeader, Card, Kpi). Un gráfico por magnitud (nunca doble eje).
+  Datos vía `capa1-base/datos/metrics.ts`. Colores solo con tokens de `capa2-visual/estilos/globals.css` (claro/oscuro). El tema sigue
+  al sistema salvo que se elija con el interruptor (`capa2-visual/componentes/theme-toggle.tsx`): fija
   `<html data-theme>` y lo guarda en localStorage (`cb-theme`); un script en `app/layout.tsx` lo aplica
   antes de pintar. Logo: `public/logo-mark.png` (monograma RW de Right Works) y favicon `app/icon.png`.
-  Login email/contraseña en `app/login/` (Server Actions). `proxy.ts` (Next 16, antes `middleware`)
+  Login email/contraseña en `app/login/` (Server Actions). `proxy.ts` (Next 16, antes `middleware`; lógica en `capa3-cuentas/proxy.ts`)
   refresca la sesión y redirige a `/login`; excluye `/api`. Usuarios se crean a mano en Supabase Auth
   **y se agregan a `team_members`** (migración `team_access`): la RLS solo deja leer a miembros
   (`is_team_member()`), `metrics_rollup` (definer) lo comprueba antes de leer la vista materializada
@@ -98,54 +116,54 @@ Ver `.env.example` (el original venía truncado en esta sección).
   exige. anon/authenticated no tienen permisos de escritura en ninguna tabla (solo service_role).
   Cabeceras de seguridad (no incrustable, Referrer-Policy, etc.) en `next.config.ts`.
 - Citas en la UI: en GHL todas se autoconfirman, así que "confirmed" no se muestra. Fase por hora y
-  asistencia (`lib/appointments.ts`): pendiente (futura, ⏳ ámbar `warning-ink`), asistió (showed, ✓✓
+  asistencia (`capa1-base/util/appointments.ts`): pendiente (futura, ⏳ ámbar `warning-ink`), asistió (showed, ✓✓
   verde), no asistió (noshow), cancelada, o "ya pasó" sin marcar asistencia (✓ verde). Ícono/etiqueta en
-  `app/_components/appointment-status.tsx` (cliente: la fase usa el reloj del navegador y se refresca cada
+  `capa2-visual/componentes/appointment-status.tsx` (cliente: la fase usa el reloj del navegador y se refresca cada
   minuto). GHL manda la hora de la cita como ISO **sin zona pero en UTC** ("…T15:30:00" = 10:30 a.m. EST,
-  verificado contra GHL): `ghlDateToIso` (`lib/format.ts`) la toma como UTC. Las horas se muestran **siempre en la
+  verificado contra GHL): `ghlDateToIso` (`capa1-base/util/format.ts`) la toma como UTC. Las horas se muestran **siempre en la
   zona del dispositivo de quien mira** por defecto (`useViewerZone` en `local-time.tsx`); si el navegador
   dice UTC (mal configurado o con protección de privacidad), Los Ángeles (Pacífico). El selector del menú
   (`timezone-picker.tsx`, "Automática" por defecto) permite otra zona **solo en esa pestaña**
   (sessionStorage `cb-tz-session`; se borra el viejo localStorage `cb-tz`), así que al volver a entrar manda
   otra vez el dispositivo. El selector guarda la zona en uso en la cookie `cb-tz`; con ella el servidor calcula "hoy" (`viewerToday` en
-  `lib/viewer-zone.ts`) para el rango por defecto, los atajos y el máximo de fechas. Los días de las
+  `capa1-base/util/viewer-zone.ts`) para el rango por defecto, los atajos y el máximo de fechas. Los días de las
   métricas y de los filtros de fecha son días en la **zona de la cuenta de Meta** (`local_day(ts)` en SQL, migración
   `account_tz_days`; la zona la guarda `syncMetaCampaigns` en `sync_state.meta_account_timezone`, UTC si falta), igual que Meta. En citas, con la abreviatura de zona (`showZone`). Zona del lead = `contacts.timezone` ({{contact.timezone}} de GHL, migración
   `contact_timezone`): el panel del lead muestra su hora actual y la hora de cada cita para el lead. Teléfono = `contacts.phone`
   (migración `contact_phone`, `phone` de GHL en E.164): en el encabezado del panel, con enlace `tel:` y botón
   Copiar (`copy-button.tsx`; copia el E.164, muestra `fmtPhone`). Si falta, `getContactInfo` lo pide a GHL y lo guarda. Orden por cita (`compareAppointments`): pendientes primero
   (la más próxima), luego las pasadas (la más reciente); es el orden por defecto de la pestaña "Con cita".
-  Esa pestaña muestra arriba **Próximas citas** (`getUpcomingAppointments` en `lib/leads.ts`,
-  `app/_components/upcoming-appointments.tsx`): todas las citas futuras de leads de Meta, sin importar
+  Esa pestaña muestra arriba **Próximas citas** (`getUpcomingAppointments` en `capa1-base/datos/leads.ts`,
+  `capa2-visual/componentes/upcoming-appointments.tsx`): todas las citas futuras de leads de Meta, sin importar
   cuándo entró el lead (la tabla cuenta por cohorte y las dejaría fuera); respeta campañas y agente.
 - Responsive: en celular el `PageHeader` pone atajos a todo el ancho y fechas + Aplicar en una fila; la
   tabla de Leads se desplaza con la 1ª columna fija. Los contenedores `overflow-x-auto` llevan `relative`
   (si no, los `sr-only` absolutos de dentro escapan y ensanchan la página en celular).
 - **Campañas con poco tiempo encendidas** (migración `campaign_start`: `meta_campaigns.start_time/created_time` de
-  Meta; respaldo: primer día en `meta_ads_daily`, `first_spend_date` en `getCampaigns`; `lib/campaign-age.ts`): SOLO
+  Meta; respaldo: primer día en `meta_ads_daily`, `first_spend_date` en `getCampaigns`; `capa1-base/util/campaign-age.ts`): SOLO
   por tiempo, nunca por volumen. Días de calendario en Pacífico, el de inicio = día 1; activa o con gasto y en los días 1 a 6 (`LEARNING_DAYS` = 7) → etiqueta
   "Poco tiempo encendida · día N de 7" en las tablas (tooltip de una frase) y `NewCampaignsNote` (`campaigns-table.tsx`) en
   Resumen y Campañas: CPL variable (fase de aprendizaje) y costo por cita/ganado inflado (cohorte sin madurar). Si el
   rango llega a los últimos `MATURATION_DAYS` = 7 días, el Resumen añade bajo los KPIs que esas citas se irán sumando.
-- **Aviso de conexión Facebook → GHL rota** (`lib/meta-link-health.ts`, `app/_components/meta-link-banner.tsx`, en el
+- **Aviso de conexión Facebook → GHL rota** (`capa1-base/datos/meta-link-health.ts`, `capa2-visual/componentes/meta-link-banner.tsx`, en el
   layout; no se muestra a miembros limitados a un agente): GHL no da el estado por API, así que se infiere. En los últimos 2
   días completos UTC, si Meta reporta ≥ 3 leads y GHL recibió menos de la mitad con `meta_ad_id`, banner rojo con botón
   a Integraciones de la subcuenta (`GHL_APP_URL` + `/v2/location/<GHL_LOCATION_ID>/settings/lc-integrations`).
   Se va solo cuando los leads vuelven a llegar, o al pulsar el botón (cookie `rw-meta-link-dismissed` = último día de la
   ventana, `meta-link-button.tsx`); al día siguiente la ventana cambia y, si sigue roto, vuelve a salir.
-- **Sincronizar a pedido** (solo `is_admin`): botones "GHL" / "Meta" en el pie del menú (`app/_components/sync-buttons.tsx`)
+- **Sincronizar a pedido** (solo `is_admin`): botones "GHL" / "Meta" en el pie del menú (`capa1-base/acciones/sync-buttons.tsx`)
   → `POST /api/sync?job=ghl|meta` (sesión de Supabase, maxDuration 300): `reconcileGhl(26)` o `syncMetaAds(3)` +
   `syncMetaCampaigns()`, y después `refreshMetrics()`. Mismo trabajo que los crons, sin CRON_SECRET.
 - **Reportes** (`/reportes`, solo `is_admin`, menú Administración; migración `report`): formulario (`report-form.tsx`, GET:
   `fuente`=empresa|paquete|cliente|compartida, `inv`/`monto`/`agente` repetidos, `vmin`/`vmax`, `g=1`) → `buildReport`
-  (`lib/report.ts`) con rollups + `report_agents` (por agente: leads, ≤5 min, sin contacto +24 h, citas, asistió, ganados,
+  (`capa1-base/datos/report.ts`) con rollups + `report_agents` (por agente: leads, ≤5 min, sin contacto +24 h, citas, asistió, ganados,
   valor) + `report_wins`. Valor de un ganado = `won_values.value` (lo carga un ADMIN en la lista de Ganados del reporte,
-  Server Action `reportes/actions.ts`) > `opportunities.value` de GHL > sin valor. Sin valor: punto de equilibrio
+  Server Action `capa3-cuentas/acciones.ts` → `capa1-base/datos/won-values.ts`) > `opportunities.value` de GHL > sin valor. Sin valor: punto de equilibrio
   (inversión ÷ ganados) y, si se da rango, escenarios bajo/esperado/alto. Inversionistas: % por monto; recuperado
   proporcional y "según quién cerró" (ganados del agente vinculado; los no vinculados se reparten el resto). Resumen en
-  texto + avisos. PDF = `window.print()` con estilos `@media print` en `globals.css` (siempre claro; menú y formulario
+  texto + avisos. PDF = `window.print()` con estilos `@media print` en `capa2-visual/estilos/globals.css` (siempre claro; menú y formulario
   ocultos); CSV en `/reportes/csv` (mismos parámetros, BOM UTF-8 para Excel).
-- **Publicar campañas** (`/publicar`, solo `is_admin`; `lib/meta/publish.ts`, `app/_components/publish-wizard.tsx`):
+- **Publicar campañas** (`/publicar`, solo `is_admin`; `capa1-base/conexiones/meta/publish.ts`, `capa1-base/acciones/publish-wizard.tsx`):
   asistente que crea en Meta campaña `OUTCOME_LEADS` + conjunto (formulario instantáneo, `destination_type` ON_AD,
   presupuesto diario, EE. UU. o estados, idioma, Facebook/Instagram) + anuncios (imagen o video, texto, título,
   descripción, botón), **todo en PAUSA**; si algo falla borra la campaña creada. Categoría especial obligatoria
@@ -156,7 +174,7 @@ Ver `.env.example` (el original venía truncado en esta sección).
   `adimages` en base64; video → `advideos` con `file_url` firmado y espera a `ready`) y luego los borra.
   Requiere la Página asignada al usuario del sistema de Meta con control total.
 - **Crear formularios instantáneos** desde Publicar («+ Crear formulario nuevo», `lead-form-builder.tsx` →
-  `POST /api/meta/publish/form` y `/embed/api/publish/form`, `createLeadForm` en `lib/meta/publish.ts`): campos estándar,
+  `POST /api/meta/publish/form` y `/embed/api/publish/form`, `createLeadForm` en `capa1-base/conexiones/meta/publish.ts`): campos estándar,
   preguntas propias (claves `pregunta_N`), privacidad, pantalla final, "Mayor intención". Usa el token de la página
   (necesita `pages_manage_ads`). El formulario nuevo hay que mapearlo en GHL (Facebook → mapeo de formularios) para que
   el estado llegue a `contact.estado`.
@@ -166,34 +184,34 @@ Ver `.env.example` (el original venía truncado en esta sección).
 - Avisos de largo (`limit-hint.tsx`, no bloquean): en el formulario instantáneo, límites de Meta (`LIM` en
   `lead-form-builder.tsx`: título 60, texto final 160, pregunta 80…; si se pasa, ámbar "Meta probablemente lo rechace"); en
   los anuncios, lo que se ve antes de "Ver más" (texto 125, título 40, descripción 30).
-- **CPC** (inversión ÷ clics) en la tabla de Anuncios, junto al CTR, ordenable (`rollupRow` en `lib/metrics.ts`).
+- **CPC** (inversión ÷ clics) en la tabla de Anuncios, junto al CTR, ordenable (`rollupRow` en `capa1-base/datos/metrics.ts`).
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
-  `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`lib/embed.ts`):
+  `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`capa3-cuentas/embed.ts`):
   1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (app.rightworksinsurance.com y app.gohighlevel.com) (o el propio dashboard tras el login),
-  o petición interna same-origin; si no, "Esta página solo se puede abrir desde el CRM" (`app/embed/blocked.tsx`).
+  o petición interna same-origin; si no, "Esta página solo se puede abrir desde el CRM" (`capa3-cuentas/embed/blocked.tsx`).
   2) `frame-ancestors` con esos dominios solo en `/embed` (`next.config.ts`; el resto sigue con `'none'` + X-Frame-Options DENY).
   3) `location` = `GHL_LOCATION_ID`. 4) Sesión de admin propia del iframe: `proxy.ts` marca `/embed/*` con el header
   `x-rw-embed` y `supabaseServer()` usa la cookie `sb-rw-embed` SameSite=None + Secure + Partitioned (CHIPS); login en
-  `/embed/login` (`app/embed/actions.ts`). APIs del asistente re-exportadas en `/embed/api/publish(/upload)`. Safari
+  `/embed/login` (`capa3-cuentas/embed/actions.ts`). APIs del asistente re-exportadas en `/embed/api/publish(/upload)`. Safari
   puede bloquear la sesión en el iframe: el login ofrece abrir `/publicar` en una pestaña.
-- Moneda fija en `lib/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
+- Moneda fija en `capa1-base/util/format.ts` (`CURRENCY` = USD, formato es-US: $1,234.56).
 - Migración `campaigns_and_state`: `contacts.state/country`, tabla `meta_campaigns` (nombre/estado,
   la llena `sync-meta-ads` y el botón «Sincronizar con Meta»), `metrics_rollup(..., 'campaign')` y
-  `leads_by_state(from, to)` (leads atribuidos a Meta por estado crudo; `lib/us-states.ts` normaliza
+  `leads_by_state(from, to)` (leads atribuidos a Meta por estado crudo; `capa1-base/util/us-states.ts` normaliza
   a código USPS). Mapa = choropleth EE. UU. (`us-atlas`, rutas SVG calculadas en el servidor).
 - **Permisos por persona en `team_members`** (migración `access_console`), leídos con `myAccess()` en
-  `lib/auth.ts` (la fila propia, política own_row): `is_admin` (gestiona accesos), `can_see_ads` (Campañas y
+  `capa3-cuentas/auth.ts` (la fila propia, política own_row): `is_admin` (gestiona accesos), `can_see_ads` (Campañas y
   Anuncios; el menú las oculta, las páginas muestran "Sin acceso" y el Resumen quita los enlaces a Campañas) y
   `agent_id`. **Consola `/accesos`** (solo `is_admin`, menú "Administración"): dar acceso por email (crea la
   cuenta de Supabase Auth con contraseña escrita o generada, mostrada una sola vez), cambiar nivel / anuncios /
   admin, nueva contraseña y quitar acceso (borra la fila de team_members, la cuenta queda). Server Actions en
-  `app/(dashboard)/accesos/actions.ts` con service role; cada una re-comprueba `is_admin` y nadie puede
-  quitarse a sí mismo el admin ni el acceso. Datos en `lib/access-admin.ts`.
+  `capa3-cuentas/accesos/actions.ts` con service role; cada una re-comprueba `is_admin` y nadie puede
+  quitarse a sí mismo el admin ni el acceso. Datos en `capa3-cuentas/access-admin.ts`.
 - **Miembros limitados a un agente** (migración `agent_scope`): `team_members.agent_id` = ID de usuario de GHL
   (null = ve todo; nunca ven anuncios). La RLS de contacts/conversations/messages/opportunities/appointments solo les deja sus
   leads (`my_agent_scope()`, `can_see_contact()`); las funciones invoker (leads_list, lead_timeline,
   leads_by_state, sequence_reply_stats, call_stats) quedan filtradas solas y `metrics_rollup` se les niega.
-  En la app (`agentScope()` en `lib/auth.ts`): menú solo Leads, Audiencia y Respuesta; el Resumen redirige a
+  En la app (`agentScope()` en `capa3-cuentas/auth.ts`): menú solo Leads, Audiencia y Respuesta; el Resumen redirige a
   Leads, Calidad muestra "Sin acceso", Leads fuerza `?agente` y Respuesta solo muestra sus llamadas.
 - Pausar/activar campañas: `POST /api/meta/campaigns/status` (sesión de Supabase; requiere `canSeeAds` y,
   opcionalmente, estar en `META_CONTROL_EMAILS`). Solo campañas presentes en `meta_campaigns` (la cuenta de
@@ -225,10 +243,10 @@ Ver `.env.example` (el original venía truncado en esta sección).
   (inicio de mes o rango corto); nunca con rangos largos como "Mes pasado", aunque haya pocos días con gasto.
   Selector de campañas: etiqueta "Campañas" por defecto (activas marcadas al abrir, se pueden desmarcar;
   sin ninguna marcada = todas). Gráficos diarios del Resumen: clic en un día fija una ficha con enlaces a
-  Leads (y Citas / Campañas) de ese día (`app/_components/daily-chart.tsx`).
+  Leads (y Citas / Campañas) de ese día (`capa2-visual/componentes/daily-chart.tsx`).
 - Migración `metrics_filters`: filtro por campaña (`?camp=id1,id2`, vacío = todas) en
   `metrics_rollup(..., p_campaigns)` y `leads_by_state(..., p_campaigns)`; selector en `PageHeader`
-  (`app/_components/campaign-filter.tsx`). **Cita** = `contact_has_cita(contact)`: cita de calendario
+  (`capa2-visual/componentes/campaign-filter.tsx`). **Cita** = `contact_has_cita(contact)`: cita de calendario
   no cancelada/invalid **o** oportunidad con `appointment_reached_at`; se cuenta por cohorte del lead
   (columna `opps_appointment`, nombre heredado).
 - Diagnóstico de campos de estado: `sync_state` guarda `ghl_contact_custom_fields` (catálogo de custom

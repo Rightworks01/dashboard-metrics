@@ -1,7 +1,8 @@
-import { myAccess } from "@/lib/auth";
-import { logError } from "@/lib/log";
-import { resolveCampaignScope, resolveRange } from "@/lib/metrics";
-import { buildReport, FUNDING, parseReportParams } from "@/lib/report";
+import { puede } from "@cuentas/roles";
+import { myAccess } from "@cuentas/auth";
+import { logError } from "@base/conexiones/log";
+import { resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { buildReport, FUNDING, parseReportParams } from "@base/datos/report";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ const line = (...xs: unknown[]) => xs.map(cell).join(",");
 /** El mismo reporte en CSV (abre en Excel): una sección por tabla, separadas por una línea en blanco. */
 export async function GET(req: Request) {
   const access = await myAccess().catch(() => null);
-  if (!access?.isAdmin) return new Response("no autorizado", { status: 401 });
+  if (!puede(access, "reportes")) return new Response("no autorizado", { status: 401 });
   const sp = new URL(req.url).searchParams;
   const raw: Record<string, string | string[]> = {};
   for (const k of new Set(sp.keys())) { const all = sp.getAll(k); raw[k] = all.length > 1 ? all : all[0]; }

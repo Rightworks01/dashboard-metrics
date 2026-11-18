@@ -1,16 +1,17 @@
-import { LocalTime } from "@/app/_components/local-time";
-import { Card, ErrorNote, NoAccessNote } from "@/app/_components/ui";
-import { listAccess, listAgents } from "@/lib/access-admin";
-import { myAccess } from "@/lib/auth";
-import { logError } from "@/lib/log";
-import { AddMemberForm, MemberRow } from "./forms";
+import { accesoA } from "@cuentas/roles";
+import { LocalTime } from "@visual/componentes/local-time";
+import { Card, ErrorNote, NoAccessNote } from "@visual/componentes/ui";
+import { listAccess, listAgents } from "@cuentas/access-admin";
+import { myAccess } from "@cuentas/auth";
+import { logError } from "@base/conexiones/log";
+import { AddMemberForm, MemberRow } from "@cuentas/accesos/forms";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Accesos · Right Works" };
 
 export default async function AccesosPage() {
-  const me = await myAccess();
-  if (!me?.isAdmin) return <NoAccessNote what="Accesos" />;
+  const me = await accesoA("accesos");
+  if (!me) return <NoAccessNote what="Accesos" />;
 
   try {
     const agents = await listAgents();

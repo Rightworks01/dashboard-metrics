@@ -1,9 +1,10 @@
-import { PublishWizard } from "@/app/_components/publish-wizard";
-import { myAccess } from "@/lib/auth";
-import { logError } from "@/lib/log";
-import { getPublishOptions, type PublishOptions } from "@/lib/meta/publish";
-import { EmbedBlocked } from "../blocked";
-import { embedCheck } from "../context";
+import { accesoA } from "@cuentas/roles";
+import { PublishWizard } from "@base/acciones/publish-wizard";
+import { myAccess } from "@cuentas/auth";
+import { logError } from "@base/conexiones/log";
+import { getPublishOptions, type PublishOptions } from "@base/conexiones/meta/publish";
+import { EmbedBlocked } from "@cuentas/embed/blocked";
+import { embedCheck } from "@cuentas/embed/context";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Publicar campaña · Right Works" };
@@ -14,8 +15,8 @@ export default async function EmbedPublicarPage({ searchParams }: { searchParams
   const check = await embedCheck(location);
   if (!check.ok) return <EmbedBlocked reason={check.reason} />;
 
-  const access = await myAccess().catch(() => null);
-  if (!access?.isAdmin) {
+  const access = await accesoA("publicar");
+  if (!access) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
         <div className="card max-w-sm p-6 text-center">

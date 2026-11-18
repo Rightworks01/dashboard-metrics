@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { ThemeToggle } from "@/app/_components/theme-toggle";
-import { signIn } from "./actions";
-import { PasswordInput } from "./password-input";
+import { ThemeToggle } from "@visual/componentes/theme-toggle";
+import { signIn } from "@cuentas/login/actions";
+import { PasswordInput } from "@cuentas/login/password-input";
 
 const ERRORS: Record<string, string> = {
   invalid: "Escribe un email válido y la contraseña.",
