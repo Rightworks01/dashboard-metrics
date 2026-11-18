@@ -122,8 +122,9 @@ export const CTAS = {
 const adSchema = z.object({
   name: z.string().trim().min(1).max(200),
   media: z.object({ kind: z.enum(["image", "video"]), path: z.string().min(3).max(300) }),
-  message: z.string().trim().min(1).max(2000),
-  headline: z.string().trim().max(255).default(""),
+  // Hasta 5 textos principales y 5 títulos: Meta prueba las combinaciones y muestra la que mejor rinde a cada persona
+  messages: z.array(z.string().trim().max(5000)).transform((x) => x.filter(Boolean)).pipe(z.array(z.string()).min(1).max(5)),
+  headlines: z.array(z.string().trim().max(5000)).default([]).transform((x) => x.filter(Boolean)).pipe(z.array(z.string()).max(5)),
   description: z.string().trim().max(255).default(""),
   cta: z.enum(Object.keys(CTAS) as [keyof typeof CTAS, ...(keyof typeof CTAS)[]]),
 });
@@ -241,8 +242,8 @@ export async function publishCampaign(input: PublishInput, deadline: number): Pr
         objectStorySpec = {
           ...actor,
           link_data: {
-            image_hash: hash, message: ad.message, link: "https://fb.me/",
-            ...(ad.headline ? { name: ad.headline } : {}), ...(ad.description ? { description: ad.description } : {}),
+            image_hash: hash, message: ad.messages[0], link: "https://fb.me/",
+            ...(ad.headlines[0] ? { name: ad.headlines[0] } : {}), ...(ad.description ? { description: ad.description } : {}),
             call_to_action: cta,
           },
         };
@@ -251,13 +252,24 @@ export async function publishCampaign(input: PublishInput, deadline: number): Pr
         objectStorySpec = {
           ...actor,
           video_data: {
-            video_id: videoId, image_url: thumbnail, message: ad.message,
-            ...(ad.headline ? { title: ad.headline } : {}), ...(ad.description ? { link_description: ad.description } : {}),
+            video_id: videoId, image_url: thumbnail, message: ad.messages[0],
+            ...(ad.headlines[0] ? { title: ad.headlines[0] } : {}), ...(ad.description ? { link_description: ad.description } : {}),
             call_to_action: cta,
           },
         };
       }
-      const { id: creativeId } = await metaPost<{ id: string }>(`${acct}/adcreatives`, { name: ad.name, object_story_spec: objectStorySpec }, "adcreatives");
+      // Varias opciones de texto (como "Agregar opciones de texto" en Ads Manager): el creativo lleva el primer texto
+      // y asset_feed_spec con todas las variantes; DEGREES_OF_FREEDOM = no es creativo dinámico, el conjunto no cambia.
+      const variants = ad.messages.length > 1 || ad.headlines.length > 1;
+      const assetFeedSpec = variants ? {
+        bodies: ad.messages.map((text) => ({ text })),
+        ...(ad.headlines.length ? { titles: ad.headlines.map((text) => ({ text })) } : {}),
+        ...(ad.description ? { descriptions: [{ text: ad.description }] } : {}),
+        optimization_type: "DEGREES_OF_FREEDOM",
+      } : undefined;
+      const { id: creativeId } = await metaPost<{ id: string }>(`${acct}/adcreatives`, {
+        name: ad.name, object_story_spec: objectStorySpec, ...(assetFeedSpec ? { asset_feed_spec: assetFeedSpec } : {}),
+      }, "adcreatives");
       const { id: adId } = await metaPost<{ id: string }>(`${acct}/ads`, { name: ad.name, adset_id: adsetId, creative: { creative_id: creativeId }, status: "PAUSED" }, "ads");
       adIds.push(adId);
     }

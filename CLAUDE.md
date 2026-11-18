@@ -160,6 +160,12 @@ Ver `.env.example` (el original venía truncado en esta sección).
   preguntas propias (claves `pregunta_N`), privacidad, pantalla final, "Mayor intención". Usa el token de la página
   (necesita `pages_manage_ads`). El formulario nuevo hay que mapearlo en GHL (Facebook → mapeo de formularios) para que
   el estado llegue a `contact.estado`.
+- **Varias opciones de texto por anuncio** en Publicar: hasta 5 textos principales y 5 títulos (+1 descripción), `Variants` en
+  `publish-wizard.tsx`; el creativo lleva el 1º en `object_story_spec` y todas en `asset_feed_spec` con
+  `optimization_type: DEGREES_OF_FREEDOM` (como "Agregar opciones de texto" de Ads Manager, no es creativo dinámico).
+- Avisos de largo (`limit-hint.tsx`, no bloquean): en el formulario instantáneo, límites de Meta (`LIM` en
+  `lead-form-builder.tsx`: título 60, texto final 160, pregunta 80…; si se pasa, ámbar "Meta probablemente lo rechace"); en
+  los anuncios, lo que se ve antes de "Ver más" (texto 125, título 40, descripción 30).
 - **CPC** (inversión ÷ clics) en la tabla de Anuncios, junto al CTR, ordenable (`rollupRow` en `lib/metrics.ts`).
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
   `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`lib/embed.ts`):

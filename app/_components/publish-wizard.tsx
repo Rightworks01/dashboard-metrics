@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { LeadFormBuilder } from "./lead-form-builder";
+import { LimitHint } from "./limit-hint";
+
+// Lo que Meta muestra antes de cortar con "Ver más" (no rechaza textos más largos).
+const SHOWN = { message: 125, headline: 40, description: 30 };
+const MAX_VARIANTS = 5;
 
 type Options = {
   pages: { id: string; name: string; instagram: { id: string; username: string | null } | null; forms: { id: string; name: string }[]; formsError?: string }[];
@@ -13,7 +18,7 @@ type Options = {
 type Category = "EMPLOYMENT" | "FINANCIAL_PRODUCTS_SERVICES" | "NONE";
 type Cta = "SIGN_UP" | "LEARN_MORE" | "APPLY_NOW" | "GET_QUOTE" | "CONTACT_US" | "SUBSCRIBE";
 type Ad = {
-  key: number; name: string; message: string; headline: string; description: string; cta: Cta;
+  key: number; name: string; messages: string[]; headlines: string[]; description: string; cta: Cta;
   media: { kind: "image" | "video"; path: string; preview: string; fileName: string } | null;
   uploading: boolean; uploadError?: string;
 };
@@ -34,7 +39,7 @@ const input = "w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 tex
 const label = "mb-1 block text-xs font-medium text-ink-2";
 
 let nextKey = 1;
-const newAd = (n: number): Ad => ({ key: nextKey++, name: `Anuncio ${n}`, message: "", headline: "", description: "", cta: "SIGN_UP", media: null, uploading: false });
+const newAd = (n: number): Ad => ({ key: nextKey++, name: `Anuncio ${n}`, messages: [""], headlines: [""], description: "", cta: "SIGN_UP", media: null, uploading: false });
 
 function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
@@ -110,7 +115,7 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
   if (!allUS && regions.length === 0) missing.push("estados");
   ads.forEach((a, i) => {
     if (!a.media) missing.push(`imagen o video del anuncio ${i + 1}`);
-    if (!a.message.trim()) missing.push(`texto principal del anuncio ${i + 1}`);
+    if (!a.messages.some((m) => m.trim())) missing.push(`texto principal del anuncio ${i + 1}`);
   });
   const uploading = ads.some((a) => a.uploading);
 
@@ -128,7 +133,7 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
         ageMax: category === "NONE" && ageMax ? Number(ageMax) : undefined,
         facebook, instagram: instagram && !!page?.instagram, pageId, instagramId: page?.instagram?.id, formId,
       },
-      ads: ads.map((a) => ({ name: a.name, media: { kind: a.media!.kind, path: a.media!.path }, message: a.message, headline: a.headline, description: a.description, cta: a.cta })),
+      ads: ads.map((a) => ({ name: a.name, media: { kind: a.media!.kind, path: a.media!.path }, messages: a.messages, headlines: a.headlines, description: a.description, cta: a.cta })),
     };
     try {
       const res = await fetch(apiBase, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -300,22 +305,22 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
                 {ad.uploadError && <p className="mt-1 text-xs text-critical">{ad.uploadError}</p>}
               </div>
               <div className="space-y-3">
-                <div><label className={label} htmlFor={`msg${ad.key}`}>Texto principal</label>
-                  <textarea id={`msg${ad.key}`} rows={5} className={input} value={ad.message} onChange={(e) => updateAd(ad.key, { message: e.target.value })} maxLength={2000} /></div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div><label className={label} htmlFor={`hl${ad.key}`}>Título</label>
-                    <input id={`hl${ad.key}`} className={input} value={ad.headline} onChange={(e) => updateAd(ad.key, { headline: e.target.value })} maxLength={255} /></div>
-                  <div><label className={label} htmlFor={`cta${ad.key}`}>Botón</label>
-                    <select id={`cta${ad.key}`} className={input} value={ad.cta} onChange={(e) => updateAd(ad.key, { cta: e.target.value as Cta })}>
-                      {CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select></div>
-                </div>
+                <Variants title="Texto principal" hint="Meta combina los textos y títulos y muestra a cada persona la versión que mejor le funciona."
+                  values={ad.messages} multiline shown={SHOWN.message} idPrefix={`msg${ad.key}`}
+                  onChange={(messages) => updateAd(ad.key, { messages })} />
+                <Variants title="Título" values={ad.headlines} shown={SHOWN.headline} idPrefix={`hl${ad.key}`}
+                  onChange={(headlines) => updateAd(ad.key, { headlines })} />
+                <div className="sm:max-w-xs"><label className={label} htmlFor={`cta${ad.key}`}>Botón</label>
+                  <select id={`cta${ad.key}`} className={input} value={ad.cta} onChange={(e) => updateAd(ad.key, { cta: e.target.value as Cta })}>
+                    {CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select></div>
                 <div><label className={label} htmlFor={`ds${ad.key}`}>Descripción (opcional)</label>
-                  <input id={`ds${ad.key}`} className={input} value={ad.description} onChange={(e) => updateAd(ad.key, { description: e.target.value })} maxLength={255} /></div>
+                  <input id={`ds${ad.key}`} className={input} value={ad.description} onChange={(e) => updateAd(ad.key, { description: e.target.value })} />
+                  <LimitHint value={ad.description} limit={SHOWN.description} kind="soft" /></div>
               </div>
             </div>
             {i === ads.length - 1 && ads.length < 10 && (
-              <button type="button" onClick={() => setAds((x) => [...x, { ...newAd(x.length + 1), message: ad.message, headline: ad.headline, description: ad.description, cta: ad.cta }])}
+              <button type="button" onClick={() => setAds((x) => [...x, { ...newAd(x.length + 1), messages: [...ad.messages], headlines: [...ad.headlines], description: ad.description, cta: ad.cta }])}
                 className="text-sm font-medium text-accent hover:underline">+ Agregar otro anuncio (copia los textos de este)</button>
             )}
           </div>
@@ -333,5 +338,39 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
         {result && !result.ok && <p role="alert" className="w-full text-sm text-critical">{result.error}</p>}
       </div>
     </div>
+  );
+}
+
+/** Hasta 5 variantes de un texto (textos principales o títulos), como "Agregar opciones de texto" de Ads Manager. */
+function Variants({ title, hint, values, onChange, multiline = false, shown, idPrefix }: {
+  title: string; hint?: string; values: string[]; onChange: (v: string[]) => void; multiline?: boolean; shown: number; idPrefix: string;
+}) {
+  const set = (i: number, v: string) => onChange(values.map((x, j) => (j === i ? v : x)));
+  return (
+    <fieldset className="space-y-2">
+      <legend className={label}>{title}{values.length > 1 ? ` (${values.length} opciones)` : ""}</legend>
+      {values.map((v, i) => (
+        <div key={i}>
+          <div className="flex items-start gap-2">
+            {multiline
+              ? <textarea id={`${idPrefix}-${i}`} rows={i === 0 ? 5 : 3} className={input} value={v} onChange={(e) => set(i, e.target.value)}
+                  aria-label={`${title} ${i + 1}`} placeholder={i === 0 ? "" : `Opción ${i + 1}`} />
+              : <input id={`${idPrefix}-${i}`} className={input} value={v} onChange={(e) => set(i, e.target.value)}
+                  aria-label={`${title} ${i + 1}`} placeholder={i === 0 ? "" : `Opción ${i + 1}`} />}
+            {values.length > 1 && (
+              <button type="button" onClick={() => onChange(values.filter((_, j) => j !== i))}
+                className="px-1 py-1.5 text-sm text-ink-3 hover:text-critical" aria-label={`Quitar ${title.toLowerCase()} ${i + 1}`}>✕</button>
+            )}
+          </div>
+          <LimitHint value={v} limit={shown} kind="soft" />
+        </div>
+      ))}
+      {values.length < MAX_VARIANTS && (
+        <button type="button" onClick={() => onChange([...values, ""])} className="text-sm font-medium text-accent hover:underline">
+          + Agregar otra opción de {title.toLowerCase()} ({values.length}/{MAX_VARIANTS})
+        </button>
+      )}
+      {hint && values.length > 1 && <p className="text-xs text-ink-3">{hint}</p>}
+    </fieldset>
   );
 }

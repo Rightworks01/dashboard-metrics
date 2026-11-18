@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { LimitHint } from "./limit-hint";
+
+// Límites de Meta para formularios instantáneos (los mismos que pone Ads Manager).
+const LIM = { name: 200, introTitle: 60, introText: 800, question: 80, option: 80, tyTitle: 60, tyBody: 160, tyButton: 60 };
 
 type Std = "FULL_NAME" | "PHONE" | "EMAIL" | "STATE" | "CITY" | "ZIP";
 const STANDARD: { value: Std; label: string }[] = [
@@ -45,6 +49,10 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
     (!tyTitle.trim() || !tyButton.trim()) && "título y botón de la pantalla final",
   ].filter(Boolean) as string[];
 
+  const over = name.trim().length > LIM.name || headline.trim().length > LIM.introTitle || description.trim().length > LIM.introText
+    || tyTitle.trim().length > LIM.tyTitle || tyBody.trim().length > LIM.tyBody || tyButton.trim().length > LIM.tyButton
+    || custom.some((c) => c.label.trim().length > LIM.question || c.options.split(",").some((o) => o.trim().length > LIM.option));
+
   async function create() {
     setSending(true);
     setError(null);
@@ -75,7 +83,7 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="sm:col-span-2"><label className={label} htmlFor="fname">Nombre del formulario</label>
-          <input id="fname" className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="V5 - RightWorks - Reclutamiento - Dic 2026" /></div>
+          <input id="fname" className={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="V5 - RightWorks - Reclutamiento - Dic 2026" /><LimitHint value={name} limit={LIM.name} /></div>
         <div><label className={label} htmlFor="flocale">Idioma</label>
           <select id="flocale" className={input} value={locale} onChange={(e) => setLocale(e.target.value as "ES_LA" | "EN_US")}>
             <option value="ES_LA">Español</option><option value="EN_US">Inglés</option>
@@ -88,9 +96,9 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
       </fieldset>
       <div className="grid gap-3 sm:grid-cols-2">
         <div><label className={label} htmlFor="fhl">Introducción: título (opcional)</label>
-          <input id="fhl" className={input} value={headline} onChange={(e) => setHeadline(e.target.value)} /></div>
+          <input id="fhl" className={input} value={headline} onChange={(e) => setHeadline(e.target.value)} /><LimitHint value={headline} limit={LIM.introTitle} /></div>
         <div><label className={label} htmlFor="fdesc">Introducción: texto (opcional)</label>
-          <textarea id="fdesc" rows={3} className={input} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <textarea id="fdesc" rows={3} className={input} value={description} onChange={(e) => setDescription(e.target.value)} /><LimitHint value={description} limit={LIM.introText} /></div>
       </div>
       <fieldset>
         <legend className={label}>Datos de contacto (Meta los rellena con el perfil)</legend>
@@ -107,8 +115,12 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
         <legend className={label}>Preguntas personalizadas (opciones separadas por coma; vacío = respuesta libre)</legend>
         {custom.map((c) => (
           <div key={c.key} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-            <input className={input} value={c.label} placeholder="Pregunta"
+            <div><input className={input} value={c.label} placeholder="Pregunta"
               onChange={(e) => setCustom((x) => x.map((q) => (q.key === c.key ? { ...q, label: e.target.value } : q)))} />
+              <LimitHint value={c.label} limit={LIM.question} />
+              {c.options.split(",").some((o) => o.trim().length > LIM.option) && (
+                <p className="text-xs text-warning-ink">Alguna opción pasa de {LIM.option} caracteres: Meta podría rechazarla.</p>
+              )}</div>
             <input className={input} value={c.options} placeholder="Opción 1, Opción 2… (opcional)"
               onChange={(e) => setCustom((x) => x.map((q) => (q.key === c.key ? { ...q, options: e.target.value } : q)))} />
             <button type="button" onClick={() => setCustom((x) => x.filter((q) => q.key !== c.key))} className="px-2 text-sm text-ink-3 hover:text-critical">✕</button>
@@ -122,10 +134,10 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
         <input id="fpriv" className={input} value={privacyUrl} onChange={(e) => setPrivacyUrl(e.target.value)} placeholder="https://rightworksinsurance.com/privacidad" /></div>
       <fieldset className="grid gap-3 sm:grid-cols-2">
         <legend className={label}>Pantalla final</legend>
-        <input className={input} value={tyTitle} onChange={(e) => setTyTitle(e.target.value)} aria-label="Título final" />
-        <textarea rows={3} className={`${input} sm:col-span-2`} value={tyBody} onChange={(e) => setTyBody(e.target.value)} aria-label="Texto final" />
-        <input className={input} value={tyButton} onChange={(e) => setTyButton(e.target.value)} aria-label="Texto del botón" />
-        <input className={input} value={tyUrl} onChange={(e) => setTyUrl(e.target.value)} placeholder="https://rightworksinsurance.com" aria-label="URL del botón" />
+        <div><input className={input} value={tyTitle} onChange={(e) => setTyTitle(e.target.value)} aria-label="Título final" /><LimitHint value={tyTitle} limit={LIM.tyTitle} /></div>
+        <div className="sm:col-span-2"><textarea rows={3} className={input} value={tyBody} onChange={(e) => setTyBody(e.target.value)} aria-label="Texto final" /><LimitHint value={tyBody} limit={LIM.tyBody} /></div>
+        <div><input className={input} value={tyButton} onChange={(e) => setTyButton(e.target.value)} aria-label="Texto del botón" /><LimitHint value={tyButton} limit={LIM.tyButton} /></div>
+        <div><input className={input} value={tyUrl} onChange={(e) => setTyUrl(e.target.value)} placeholder="https://rightworksinsurance.com" aria-label="URL del botón" /></div>
       </fieldset>
       <p className="text-xs text-ink-3">
         Después de crearlo, mapéalo en GHL (Settings → Integrations → Facebook → mapeo de formularios) para que las respuestas
@@ -137,6 +149,7 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
           {sending ? "Creando en Meta…" : "Crear formulario"}
         </button>
         {missing.length > 0 && <span className="text-xs text-ink-3">Falta: {missing.join(", ")}.</span>}
+        {over && <span className="text-xs text-warning-ink">Hay textos que pasan el límite de Meta (en ámbar): puedes intentarlo, pero Meta probablemente lo rechace.</span>}
         {error && <span role="alert" className="text-sm text-critical">{error}</span>}
       </div>
     </div>
