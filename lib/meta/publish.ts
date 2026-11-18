@@ -297,23 +297,24 @@ export const STANDARD_FIELDS = {
   ZIP: "Código postal",
 } as const;
 
+// Sin límites propios de largo en los textos (a pedido): Meta aplica los suyos; 5000 es solo un tope de seguridad.
 export const leadFormSchema = z.object({
   pageId: z.string().regex(/^\d+$/),
-  name: z.string().trim().min(1).max(200),
+  name: z.string().trim().min(1).max(5000),
   locale: z.enum(["ES_LA", "ES_ES", "EN_US"]).default("ES_LA"),
   highIntent: z.boolean().default(false),
-  intro: z.object({ headline: z.string().trim().max(60).default(""), description: z.string().trim().max(800).default("") }),
+  intro: z.object({ headline: z.string().trim().max(5000).default(""), description: z.string().trim().max(5000).default("") }),
   standard: z.array(z.enum(Object.keys(STANDARD_FIELDS) as [keyof typeof STANDARD_FIELDS, ...(keyof typeof STANDARD_FIELDS)[]])).min(1),
   custom: z.array(z.object({
-    label: z.string().trim().min(1).max(200),
-    options: z.array(z.string().trim().min(1).max(100)).max(20).default([]), // vacío = respuesta corta
+    label: z.string().trim().min(1).max(5000),
+    options: z.array(z.string().trim().min(1).max(5000)).max(20).default([]), // vacío = respuesta corta
   })).max(10).default([]),
   privacyUrl: z.url(),
-  privacyText: z.string().trim().max(70).default("Política de privacidad"),
+  privacyText: z.string().trim().max(5000).default("Política de privacidad"),
   thankYou: z.object({
-    title: z.string().trim().min(1).max(60),
-    body: z.string().trim().max(160).default(""),
-    buttonText: z.string().trim().min(1).max(60),
+    title: z.string().trim().min(1).max(5000),
+    body: z.string().trim().max(5000).default(""),
+    buttonText: z.string().trim().min(1).max(5000),
     websiteUrl: z.url(),
   }),
 });

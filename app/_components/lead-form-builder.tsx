@@ -88,9 +88,9 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
       </fieldset>
       <div className="grid gap-3 sm:grid-cols-2">
         <div><label className={label} htmlFor="fhl">Introducción: título (opcional)</label>
-          <input id="fhl" className={input} value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={60} /></div>
+          <input id="fhl" className={input} value={headline} onChange={(e) => setHeadline(e.target.value)} /></div>
         <div><label className={label} htmlFor="fdesc">Introducción: texto (opcional)</label>
-          <input id="fdesc" className={input} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={800} /></div>
+          <textarea id="fdesc" rows={3} className={input} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
       </div>
       <fieldset>
         <legend className={label}>Datos de contacto (Meta los rellena con el perfil)</legend>
@@ -122,9 +122,9 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
         <input id="fpriv" className={input} value={privacyUrl} onChange={(e) => setPrivacyUrl(e.target.value)} placeholder="https://rightworksinsurance.com/privacidad" /></div>
       <fieldset className="grid gap-3 sm:grid-cols-2">
         <legend className={label}>Pantalla final</legend>
-        <input className={input} value={tyTitle} onChange={(e) => setTyTitle(e.target.value)} maxLength={60} aria-label="Título final" />
-        <input className={input} value={tyBody} onChange={(e) => setTyBody(e.target.value)} maxLength={160} aria-label="Texto final" />
-        <input className={input} value={tyButton} onChange={(e) => setTyButton(e.target.value)} maxLength={60} aria-label="Texto del botón" />
+        <input className={input} value={tyTitle} onChange={(e) => setTyTitle(e.target.value)} aria-label="Título final" />
+        <textarea rows={3} className={`${input} sm:col-span-2`} value={tyBody} onChange={(e) => setTyBody(e.target.value)} aria-label="Texto final" />
+        <input className={input} value={tyButton} onChange={(e) => setTyButton(e.target.value)} aria-label="Texto del botón" />
         <input className={input} value={tyUrl} onChange={(e) => setTyUrl(e.target.value)} placeholder="https://rightworksinsurance.com" aria-label="URL del botón" />
       </fieldset>
       <p className="text-xs text-ink-3">
