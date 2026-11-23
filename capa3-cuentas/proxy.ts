@@ -8,6 +8,11 @@ import { EMBED_COOKIE, EMBED_HEADER, SESSION_COOKIE } from "@base/conexiones/sup
 // /embed (pestaña Publicar dentro de GHL) usa su propia cookie particionada y su propio login.
 export async function sessionProxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  // DIAGNÓSTICO TEMPORAL: desde qué página se abre el dashboard dentro de un iframe (widget de GHL)
+  if (request.headers.get("sec-fetch-dest") === "iframe") {
+    console.info(JSON.stringify({ scope: "diag.iframe", path, referer: request.headers.get("referer"),
+      site: request.headers.get("sec-fetch-site"), ancestor: request.headers.get("sec-fetch-storage-access") }));
+  }
   const embedded = path === "/embed" || path.startsWith("/embed/");
 
   // El header le dice a supabaseServer() qué cookie usar; nunca se acepta del cliente.
