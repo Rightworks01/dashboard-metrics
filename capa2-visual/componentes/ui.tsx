@@ -55,11 +55,11 @@ export async function PageHeader({ title, description, from, to, path, scope, op
   );
 }
 
-export function Card({ title, subtitle, aside, flush, className = "", children }: {
-  title: string; subtitle?: string; aside?: ReactNode; flush?: boolean; className?: string; children: ReactNode;
+export function Card({ title, subtitle, aside, flush, className = "", id, children }: {
+  title: string; subtitle?: string; aside?: ReactNode; flush?: boolean; className?: string; id?: string; children: ReactNode;
 }) {
   return (
-    <section className={`card min-w-0 overflow-hidden ${className}`}>
+    <section id={id} className={`card min-w-0 scroll-mt-20 overflow-hidden ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-2 px-5 pt-4">
         <div>
           <h2 className="text-sm font-semibold text-ink">{title}</h2>

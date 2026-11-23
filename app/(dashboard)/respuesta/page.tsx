@@ -55,7 +55,7 @@ export default async function RespuestaPage({ searchParams }: { searchParams: Se
           Contacto humano = primer mensaje o llamada de un agente. No cuentan workflows, campañas ni envíos masivos de GHL.
         </p>
 
-        <Card title="Por agente" flush subtitle="Agente asignado al lead en GHL. Pulsa un nombre para ver sus leads.">
+        <Card id="por-agente" title="Por agente" flush subtitle="Agente asignado al lead en GHL. Pulsa un nombre para ver sus leads.">
           <div className="relative overflow-x-auto">
             <table className="w-full text-right text-sm tabular-nums">
               <thead className="border-y border-line bg-surface-2/60 text-xs text-ink-3">
@@ -95,7 +95,7 @@ export default async function RespuestaPage({ searchParams }: { searchParams: Se
         </Card>
 
         <section className="grid gap-5 xl:grid-cols-2">
-          <Card title="¿Qué mensajes responden los leads?" flush
+          <Card id="mensajes" title="¿Qué mensajes responden los leads?" flush
             subtitle="Mensajes automáticos de la secuencia (sin recordatorios de cita): % de leads que contestan en 48 h.">
             {data.sequence.length === 0 ? <p className="px-5 pb-5 text-sm text-ink-3">Sin mensajes automáticos en este rango.</p> : (
               <div className="relative overflow-x-auto">
@@ -124,7 +124,7 @@ export default async function RespuestaPage({ searchParams }: { searchParams: Se
             )}
           </Card>
 
-          <Card title="Llamadas" flush
+          <Card id="llamadas" title="Llamadas" flush
             subtitle="Salientes del agente y llamadas perdidas del lead (no contestadas o buzón) que luego se devolvieron.">
             {data.calls.length === 0 ? <p className="px-5 pb-5 text-sm text-ink-3">Sin llamadas en este rango.</p> : (
               <div className="relative overflow-x-auto">

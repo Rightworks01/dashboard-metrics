@@ -10,6 +10,7 @@ import { firstContactMs } from "@base/util/leads-util";
 
 export const LEAD_FILTERS = {
   todos: "Todos",
+  contactado: "Con contacto humano",
   respondio: "Respondieron",
   cita: "Con cita",
   ganado: "Ganados",
@@ -80,6 +81,7 @@ export async function getLeads(opts: {
 
 const LEAD_MATCH: Record<LeadFilter, (l: Lead) => boolean> = {
   todos: () => true,
+  contactado: (l) => !!l.first_human_at,
   respondio: (l) => l.responded,
   cita: (l) => l.has_cita,
   ganado: (l) => l.opp_status === "won",

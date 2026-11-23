@@ -42,6 +42,8 @@ export default async function SeguimientoPage({ searchParams }: { searchParams: 
       {header(options)}
       <FollowupReportView report={report} campaignsLabel={campaignsLabel}
         leadHref={(id) => `/leads?${query}&lead=${id}`}
+        leadsHref={(etapa) => `/leads?${query}${etapa ? `&etapa=${etapa}` : ""}`}
+        respuestaHref={(section) => `/respuesta?${query}${section ? `#${section}` : ""}`}
         actions={<>
           <a href={`/reportes/seguimiento/csv?${query}`} className="inline-flex items-center rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-surface-2">Excel / CSV</a>
           <PrintButton />

@@ -171,7 +171,9 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   llamadas en GHL), contacto y respuesta, embudo, citas por estado y por responsable, tabla por agente, leads sin contacto
   +24 h, respondieron sin respuesta humana, llamadas perdidas sin devolver, sin agente, etapa del pipeline, por campaña y
   respuesta a los automáticos. Vista en `capa2-visual/componentes/followup-report.tsx`; PDF (print) y CSV en
-  `/reportes/seguimiento/csv` (incluye una fila por lead).
+  `/reportes/seguimiento/csv` (incluye una fila por lead) Cada tarjeta de cifra (`Stat` con `href`, efecto hover) lleva al detalle: Leads ya
+  filtrado (`leadsHref(etapa)`, incluida la pestaña nueva `?etapa=contactado` = con contacto humano), Respuesta
+  (`#por-agente`, `#mensajes`, `#llamadas`) o una sección del propio reporte (`#citas`, `#respondieron-sin-respuesta`…).
 - **Publicar campañas** (`/publicar`, solo `is_admin`; `capa1-base/conexiones/meta/publish.ts`, `capa1-base/acciones/publish-wizard.tsx`):
   asistente que crea en Meta campaña `OUTCOME_LEADS` + conjunto (formulario instantáneo, `destination_type` ON_AD,
   presupuesto diario, EE. UU. o estados, idioma, Facebook/Instagram) + anuncios (imagen o video, texto, título,

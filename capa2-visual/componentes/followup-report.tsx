@@ -22,13 +22,25 @@ const PHASE_LABEL: Record<AppointmentPhase, string> = {
 };
 const PHASE_ORDER: AppointmentPhase[] = ["pendiente", "asistio", "no_asistio", "paso", "cancelada"];
 
-function Stat({ label, value, hint, critical }: { label: string; value: string; hint?: string; critical?: boolean }) {
-  return (
-    <div className={`rounded-lg bg-surface-2 px-3 py-2.5 ${critical ? "ring-1 ring-critical/40" : ""}`}>
-      <p className="text-xs text-ink-3">{label}</p>
+/** Tarjeta de cifra. Con `href`, lleva a donde está el detalle (otra sección o una lista ya filtrada). */
+function Stat({ label, value, hint, critical, href }: { label: string; value: string; hint?: string; critical?: boolean; href?: string }) {
+  const body = (
+    <>
+      <p className="flex items-start justify-between gap-2 text-xs text-ink-3">
+        {label}
+        {href && <span aria-hidden="true" className="text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-accent">→</span>}
+      </p>
       <p className={`text-lg font-semibold tabular-nums ${critical ? "text-critical" : "text-ink"}`}>{value}</p>
       {hint && <p className="text-xs tabular-nums text-ink-3">{hint}</p>}
-    </div>
+    </>
+  );
+  const base = `block rounded-lg bg-surface-2 px-3 py-2.5 ${critical ? "ring-1 ring-critical/40" : ""}`;
+  if (!href) return <div className={base}>{body}</div>;
+  return (
+    <Link href={href} className={`group ${base} transition duration-150 hover:-translate-y-0.5 hover:bg-surface hover:shadow-md hover:ring-1 ${
+      critical ? "hover:ring-critical/70" : "hover:ring-accent/50"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent print:transform-none`}>
+      {body}
+    </Link>
   );
 }
 
@@ -101,18 +113,23 @@ function AppointmentList({ rows, leadHref }: { rows: FollowupAppointment[]; lead
   );
 }
 
-export function FollowupReportView({ report: r, campaignsLabel, actions, leadHref }: {
+/**
+ * `leadsHref(etapa)` = lista de Leads con el mismo período y campañas (etapa: contactado, respondio, cita, ganado,
+ * sin_contacto; sin etapa = todos). `respuestaHref(seccion)` = página Respuesta (por-agente, mensajes, llamadas).
+ */
+export function FollowupReportView({ report: r, campaignsLabel, actions, leadHref, leadsHref, respuestaHref }: {
   report: FollowupReport; campaignsLabel: string; actions?: ReactNode; leadHref: (contactId: string) => string;
+  leadsHref: (etapa?: string) => string; respuestaHref: (section?: string) => string;
 }) {
   const t = r.total;
   const totalAppts = r.appointments.length;
   const funnel = [
-    { label: "Leads", value: t.leads },
-    { label: "Contacto humano", value: t.contacted },
-    { label: "Respondieron", value: t.responded },
-    { label: "Con cita", value: t.withCita },
-    { label: "Asistieron", value: r.appointmentsByPhase.asistio },
-    { label: "Ganados", value: t.won },
+    { label: "Leads", value: t.leads, href: leadsHref() },
+    { label: "Contacto humano", value: t.contacted, href: leadsHref("contactado") },
+    { label: "Respondieron", value: t.responded, href: leadsHref("respondio") },
+    { label: "Con cita", value: t.withCita, href: leadsHref("cita") },
+    { label: "Asistieron", value: r.appointmentsByPhase.asistio, href: "#citas" },
+    { label: "Ganados", value: t.won, href: leadsHref("ganado") },
   ];
 
   return (
@@ -143,36 +160,36 @@ export function FollowupReportView({ report: r, campaignsLabel, actions, leadHre
       {/* Indicadores */}
       <Card title="Contacto y respuesta">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Leads" value={fmtInt(t.leads)} />
-          <Stat label="Con contacto humano" value={fmtInt(t.contacted)} hint={pct(t.contacted, t.leads)} />
-          <Stat label="Sin contacto humano" value={fmtInt(t.noContact)} hint={t.noContact24h ? `${fmtInt(t.noContact24h)} con más de 24 h` : undefined} critical={t.noContact24h > 0} />
-          <Stat label="1er contacto (mediana)" value={dur(t.medianFirstMs)} hint={t.contacted ? `${pct(t.under5, t.contacted)} en ≤ 5 min` : undefined} />
-          <Stat label="Respondieron" value={fmtInt(t.responded)} hint={pct(t.responded, t.leads)} />
-          <Stat label="Respondieron sin respuesta humana" value={fmtInt(t.respondedNoHuman)} critical={t.respondedNoHuman > 0} />
+          <Stat label="Leads" value={fmtInt(t.leads)} href={leadsHref()} />
+          <Stat label="Con contacto humano" value={fmtInt(t.contacted)} hint={pct(t.contacted, t.leads)} href={leadsHref("contactado")} />
+          <Stat label="Sin contacto humano" value={fmtInt(t.noContact)} hint={t.noContact24h ? `${fmtInt(t.noContact24h)} con más de 24 h` : undefined} critical={t.noContact24h > 0} href={leadsHref("sin_contacto")} />
+          <Stat label="1er contacto (mediana)" value={dur(t.medianFirstMs)} hint={t.contacted ? `${pct(t.under5, t.contacted)} en ≤ 5 min` : undefined} href={respuestaHref("por-agente")} />
+          <Stat label="Respondieron" value={fmtInt(t.responded)} hint={pct(t.responded, t.leads)} href={leadsHref("respondio")} />
+          <Stat label="Respondieron sin respuesta humana" value={fmtInt(t.respondedNoHuman)} critical={t.respondedNoHuman > 0} href="#respondieron-sin-respuesta" />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Mensajes de agentes" value={fmtInt(t.humanMsgs)} />
-          <Stat label="Mensajes automáticos" value={fmtInt(t.autoMsgs)} />
-          <Stat label="Mensajes de los leads" value={fmtInt(t.inboundMsgs)} />
-          <Stat label="Llamadas salientes" value={fmtInt(t.callsOut)} hint={t.callsOut ? `${fmtInt(t.callsAnswered)} contestadas (${pct(t.callsAnswered, t.callsOut)})` : undefined} />
-          <Stat label="Tiempo en llamada" value={minutes(t.callSeconds)} />
-          <Stat label="Llamadas entrantes perdidas" value={fmtInt(t.missedIn)} hint={t.missedIn ? `${fmtInt(t.missedUnreturned)} sin devolver` : undefined} critical={t.missedUnreturned > 0} />
+          <Stat label="Mensajes de agentes" value={fmtInt(t.humanMsgs)} href="#por-agente" />
+          <Stat label="Mensajes automáticos" value={fmtInt(t.autoMsgs)} href={r.sequence.length ? "#automaticos" : respuestaHref("mensajes")} />
+          <Stat label="Mensajes de los leads" value={fmtInt(t.inboundMsgs)} href={leadsHref("respondio")} />
+          <Stat label="Llamadas salientes" value={fmtInt(t.callsOut)} hint={t.callsOut ? `${fmtInt(t.callsAnswered)} contestadas (${pct(t.callsAnswered, t.callsOut)})` : undefined} href={respuestaHref("llamadas")} />
+          <Stat label="Tiempo en llamada" value={minutes(t.callSeconds)} href={respuestaHref("llamadas")} />
+          <Stat label="Llamadas entrantes perdidas" value={fmtInt(t.missedIn)} hint={t.missedIn ? `${fmtInt(t.missedUnreturned)} sin devolver` : undefined} critical={t.missedUnreturned > 0} href={r.attention.missedUnreturned.length ? "#llamadas-perdidas" : respuestaHref("llamadas")} />
         </div>
       </Card>
 
       <Card title="Embudo de seguimiento" subtitle="De los leads del período, cuántos llegaron a cada paso.">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {funnel.map((f, i) => (
-            <Stat key={f.label} label={f.label} value={fmtInt(f.value)} hint={i === 0 ? undefined : `${pct(f.value, t.leads)} de los leads`} />
+            <Stat key={f.label} label={f.label} value={fmtInt(f.value)} hint={i === 0 ? undefined : `${pct(f.value, t.leads)} de los leads`} href={f.href} />
           ))}
         </div>
       </Card>
 
       {/* Citas */}
-      <Card title={`Citas · ${fmtInt(totalAppts)}`} flush
+      <Card id="citas" title={`Citas · ${fmtInt(totalAppts)}`} flush
         subtitle={`Citas en el calendario de GHL de los leads de este período. ${fmtInt(t.withCita)} leads tienen cita (calendario o etapa de cita en el pipeline).`}>
         <div className="grid grid-cols-2 gap-3 px-5 pb-4 sm:grid-cols-5">
-          {PHASE_ORDER.map((p) => <Stat key={p} label={PHASE_LABEL[p]} value={fmtInt(r.appointmentsByPhase[p])} critical={p === "paso" && r.appointmentsByPhase.paso > 0} />)}
+          {PHASE_ORDER.map((p) => <Stat key={p} label={PHASE_LABEL[p]} value={fmtInt(r.appointmentsByPhase[p])} critical={p === "paso" && r.appointmentsByPhase.paso > 0} href="#lista-citas" />)}
         </div>
         {r.appointmentsByOwner.length > 0 && (
           <Table head={<><th className={`${th} pl-5 text-left`}>Responsable</th><th className={th}>Citas</th>{PHASE_ORDER.map((p) => <th key={p} className={`${th} ${p === "cancelada" ? "pr-5" : ""}`}>{PHASE_LABEL[p]}</th>)}</>}>
@@ -185,11 +202,11 @@ export function FollowupReportView({ report: r, campaignsLabel, actions, leadHre
             ))}
           </Table>
         )}
-        <div className="mt-4"><AppointmentList rows={r.appointments} leadHref={leadHref} /></div>
+        <div id="lista-citas" className="mt-4 scroll-mt-20"><AppointmentList rows={r.appointments} leadHref={leadHref} /></div>
       </Card>
 
       {/* Por agente */}
-      <Card title="Seguimiento por agente" flush subtitle="Por agente asignado al lead en GHL. Llamadas y mensajes cuentan los de sus leads.">
+      <Card id="por-agente" title="Seguimiento por agente" flush subtitle="Por agente asignado al lead en GHL. Llamadas y mensajes cuentan los de sus leads.">
         <Table head={<><th className={`${th} pl-5 text-left`}>Agente</th>{TALLY_HEAD.map((h, i) => <th key={h} className={`${th} ${i === TALLY_HEAD.length - 1 ? "pr-5" : ""}`}>{h}</th>)}</>}>
           {r.agents.map((a: AgentFollowup) => (
             <tr key={a.agentId ?? "none"}>
@@ -205,18 +222,18 @@ export function FollowupReportView({ report: r, campaignsLabel, actions, leadHre
       </Card>
 
       {/* Leads que necesitan atención */}
-      <Card title={`Sin contacto humano hace más de 24 h · ${fmtInt(r.attention.noContact24h.length)}`} flush
+      <Card id="sin-contacto-24h" title={`Sin contacto humano hace más de 24 h · ${fmtInt(r.attention.noContact24h.length)}`} flush
         subtitle="Leads a los que ninguna persona ha escrito ni llamado (solo recibieron automáticos). Los más antiguos primero.">
         <LeadList rows={r.attention.noContact24h} leadHref={leadHref} empty="Ninguno: todos los leads con más de 24 h tienen contacto humano."
           extra={(l) => `${fmtInt(l.auto_msgs_out)} automáticos${l.responded ? " · respondió" : ""}`} />
       </Card>
-      <Card title={`Respondieron y nadie les contestó · ${fmtInt(r.attention.respondedNoHuman.length)}`} flush
+      <Card id="respondieron-sin-respuesta" title={`Respondieron y nadie les contestó · ${fmtInt(r.attention.respondedNoHuman.length)}`} flush
         subtitle="El lead escribió, pero solo tiene mensajes automáticos. Son los más calientes para retomar.">
         <LeadList rows={r.attention.respondedNoHuman} leadHref={leadHref} empty="Ninguno."
           extra={(l) => (l.last_reply ? `“${l.last_reply.slice(0, 80)}${l.last_reply.length > 80 ? "…" : ""}”` : "—")} />
       </Card>
       {r.attention.missedUnreturned.length > 0 && (
-        <Card title={`Llamadas perdidas sin devolver · ${fmtInt(r.attention.missedUnreturned.length)}`} flush>
+        <Card id="llamadas-perdidas" title={`Llamadas perdidas sin devolver · ${fmtInt(r.attention.missedUnreturned.length)}`} flush>
           <LeadList rows={r.attention.missedUnreturned} leadHref={leadHref} empty="Ninguna."
             extra={(l) => `${fmtInt(l.missed_unreturned)} sin devolver`} />
         </Card>
@@ -259,7 +276,7 @@ export function FollowupReportView({ report: r, campaignsLabel, actions, leadHre
 
       {/* Secuencia automática */}
       {r.sequence.length > 0 && (
-        <Card title="Mensajes automáticos: cuántos responden" flush
+        <Card id="automaticos" title="Mensajes automáticos: cuántos responden" flush
           subtitle="Por mensaje de la secuencia (sin recordatorios de cita). % = leads que respondieron después de recibirlo.">
           <Table head={<><th className={`${th} pl-5 text-left`}>Mensaje</th><th className={th}>Canal</th><th className={th}>Leads que lo recibieron</th><th className={th}>Respondieron</th><th className={`${th} pr-5`}>%</th></>}>
             {r.sequence.slice(0, 15).map((s, i) => (
