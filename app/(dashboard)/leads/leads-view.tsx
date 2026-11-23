@@ -10,10 +10,13 @@ import {
   countLeads, defaultLeadSort, filterLeads, firstContactMs, getContactInfo, getLeads, getUpcomingAppointments, getLeadTimeline, LEAD_FILTERS, parseLeadFilter, parseLeadSort, sortLeads,
   type LeadFilter,
 } from "@base/datos/leads";
-import { agentScope } from "@cuentas/auth";
+import { agentScope, myAccess } from "@cuentas/auth";
+import { puede } from "@cuentas/roles";
+import { UnlinedCampaignsNote } from "@visual/componentes/unlined-note";
 import { logError } from "@base/conexiones/log";
 import { getCampaignOptions, getCampaigns, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
-import { campaignLine, LINEAS, type Linea } from "@base/util/lineas";
+import { LINEAS, resolveLine, type Linea } from "@base/util/lineas";
+import { getFixedLines } from "@base/datos/campaign-lines";
 import { US_STATES } from "@base/util/us-states";
 
 export type LeadsSearchParams = Promise<{
@@ -47,8 +50,9 @@ function toOptions(counts: Map<string, { label: string; count: number }>, missin
 const isId = (v?: string) => (v && /^[\w-]+$/.test(v) ? v : undefined);
 
 /**
- * Lista de leads. `linea` = solo los de esa línea (Insurance / Reclutamiento, por el nombre de la campaña,
- * `campaignLine`); null = todos (los enlaces que llegan desde reportes y Resumen).
+ * Lista de leads. `linea` = solo los de esa línea (Vida / Comercial-Casas / Reclutamiento: la fijada por un admin o
+ * la automática por el nombre de la campaña, `resolveLine`); null = todos, también los de campañas sin línea
+ * (adonde llegan los enlaces de reportes y Resumen).
  */
 export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSearchParams; linea: Linea | null }) {
   const basePath = linea ? LINEAS[linea].path : "/leads";
@@ -86,19 +90,24 @@ export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSe
   try {
     // Una sola consulta con todos los leads del rango y campaña: los filtros de estado / agente / anuncio
     // se aplican aquí para poder decir "5 de 48" y para los contadores de cada pestaña.
-    const [rangeLeads, allOptions, allUpcoming, catalog] = await Promise.all([
+    const [rangeLeads, allOptions, allUpcoming, catalog, fixedLines] = await Promise.all([
       getLeads({ from, to, campaigns: camps, filter: "todos" }),
       getCampaignOptions(from, to, scopeAgent),
       // Solo en "Con cita": las citas por venir de cualquier lead (no solo de los que entraron en el rango)
       filter === "cita" ? getUpcomingAppointments({ campaigns: camps, agent }) : Promise.resolve([]),
       getCampaigns(),
+      getFixedLines(),
     ]);
-    // Línea (Insurance / Reclutamiento) por el nombre de la campaña
+    // Línea de cada lead = la de su campaña (fijada por un admin o automática por el nombre)
     const campaignNames = new Map(catalog.map((c) => [c.id, c.name]));
-    const lineOf = (campaignId: string | null, name?: string | null) => campaignLine(name ?? (campaignId ? campaignNames.get(campaignId) : null));
+    const lineOf = (campaignId: string | null, name?: string | null) =>
+      resolveLine(name ?? (campaignId ? campaignNames.get(campaignId) : null), campaignId ? fixedLines.get(campaignId) : null).line;
     const inRange = linea ? rangeLeads.filter((l) => lineOf(l.campaign_id, l.campaign_name) === linea) : rangeLeads;
-    const options = linea ? allOptions.filter((o) => campaignLine(o.name) === linea) : allOptions;
+    const options = linea ? allOptions.filter((o) => lineOf(o.id, o.name) === linea) : allOptions;
     const upcoming = linea ? allUpcoming.filter((a) => lineOf(a.campaignId) === linea) : allUpcoming;
+    // Solo admins, en las pestañas por línea: campañas activas sin línea (sus leads no salen en ninguna pestaña)
+    const unlinedActive = linea && puede(await myAccess().catch(() => null), "lineas")
+      ? catalog.filter((c) => c.status === "ACTIVE" && !lineOf(c.id, c.name)).map((c) => c.name) : [];
     type L = (typeof inRange)[number];
     const matchesState = (l: L) => !state || (state === "sin" ? !l.state_code : l.state_code === state);
     const matchesAgent = (l: L) => !agent || (agent === "sin" ? !l.assigned_to : l.assigned_to === agent);
@@ -148,21 +157,10 @@ export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSe
     return (
       <div className="space-y-5">
         <PageHeader title={scoped ? `${pageTitle} · ${scope}` : pageTitle} from={from} to={to} path={basePath} scope={campScope} options={options}
-          description={linea === "reclutamiento" ? "campañas de reclutamiento" : linea === "insurance" ? "campañas de seguros (sin reclutamiento)" : "todas las líneas"} />
+          description={linea ? `campañas de la línea ${LINEAS[linea].short}` : "todas las líneas, también campañas sin línea"} />
 
-        {/* Cambiar de línea conservando período, campañas y filtros */}
-        <nav className="inline-flex rounded-xl border border-line bg-surface p-1 text-sm shadow-sm" aria-label="Línea">
-          {([["insurance", "Insurance"], ["reclutamiento", "Reclutamiento"], [null, "Todos"]] as const).map(([l, label]) => {
-            const q = new URL(href({}), "http://x").search;
-            const target = `${l ? LINEAS[l].path : "/leads"}${q}`;
-            return (
-              <Link key={label} href={target} aria-current={linea === l ? "page" : undefined}
-                className={`rounded-lg px-3 py-1.5 font-medium ${linea === l ? "bg-accent text-white shadow-sm" : "text-ink-2 hover:bg-surface-2"}`}>
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+        {unlinedActive.length > 0 && <UnlinedCampaignsNote names={unlinedActive} where="leads" />}
+
 
         {scoped && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm">

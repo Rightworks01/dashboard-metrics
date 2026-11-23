@@ -108,8 +108,10 @@ function CountLink({ value, href }: { value: number; href?: string }) {
  * `toggle` = el interruptor On/Off (Capa 1, lo pasa la página); sin `toggle`, vista de solo lectura
  * (sin columna On/Off).
  */
-export function CampaignsTable({ rows, toggle, limit, leadsHref }: {
+export function CampaignsTable({ rows, toggle, lineCell, limit, leadsHref }: {
   rows: CampaignView[]; toggle?: (c: { id: string; name: string; active: boolean }) => ReactNode; limit?: number;
+  /** Columna "Línea" (solo admins, la pasa la página): selector de la línea de trabajo de cada campaña. */
+  lineCell?: (c: { id: string; name: string }) => ReactNode;
   leadsHref?: (campaignId: string, etapa?: string) => string;
 }) {
   if (rows.length === 0) {
@@ -127,6 +129,7 @@ export function CampaignsTable({ rows, toggle, limit, leadsHref }: {
           <tr>
             <th className="px-5 py-2.5 text-left font-medium">Campaña</th>
             <th className="px-3 py-2.5 text-left font-medium">Estado</th>
+            {lineCell && <th className="px-3 py-2.5 text-left font-medium">Línea <span className="ml-1 rounded border border-line px-1 text-[10px] uppercase tracking-wide">admin</span></th>}
             {control && <th className="px-3 py-2.5 font-medium">Presupuesto/día</th>}
             <th className="px-3 py-2.5 font-medium">Inversión</th>
             <th className="px-3 py-2.5 font-medium">Leads</th>
@@ -149,6 +152,7 @@ export function CampaignsTable({ rows, toggle, limit, leadsHref }: {
                   <span className="font-mono text-xs text-ink-3">{r.id}</span>
                 </td>
                 <td className="px-3 py-3 text-left"><StatusPill campaign={r.catalog} /></td>
+                {lineCell && <td className="px-3 py-3">{lineCell({ id: r.id, name: r.name })}</td>}
                 {control && <td className="px-3 py-3 text-ink-2">{fmtMoney(r.catalog?.daily_budget ?? null)}</td>}
                 <td className="px-3 py-3 font-medium">{fmtMoney(r.metrics?.spend ?? 0)}</td>
                 <td className="px-3 py-3"><CountLink value={r.metrics?.leads_ghl ?? 0} href={leadsHref?.(r.id)} /></td>

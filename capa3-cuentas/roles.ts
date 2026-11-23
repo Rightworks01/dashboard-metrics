@@ -43,7 +43,8 @@ export function tipoDeCuenta(a: Access): TipoDeCuenta {
 export type Permiso =
   | "resumen" | "leads" | "campanas" | "publicar" | "anuncios" | "audiencia" | "respuesta" | "calidad"
   | "reportes" | "accesos"
-  | "sincronizar";
+  | "sincronizar"
+  | "lineas";
 
 const REGLAS: Record<Permiso, (a: Access) => boolean> = {
   resumen: (a) => !a.agentId,           // un agente entra directo a Leads
@@ -57,6 +58,7 @@ const REGLAS: Record<Permiso, (a: Access) => boolean> = {
   reportes: (a) => a.isAdmin,
   accesos: (a) => a.isAdmin,
   sincronizar: (a) => a.isAdmin,        // botones GHL / Meta del menú y POST /api/sync
+  lineas: (a) => a.isAdmin,             // asignar la línea de una campaña (Vida / Comercial / Reclutamiento)
 };
 
 export function puede(a: Access | null | undefined, permiso: Permiso): a is Access {

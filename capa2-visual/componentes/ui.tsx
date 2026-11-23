@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CampaignFilter } from "@visual/componentes/campaign-filter";
+import { CampaignFilter, type LineAssign } from "@visual/componentes/campaign-filter";
 import { fmtDay, fmtSignedPct, pctChange } from "@base/util/format";
 import type { CampaignOption } from "@base/datos/metrics";
 import { campQuery, rangePresets, type CampaignScope } from "@base/util/rangos";
@@ -10,9 +10,10 @@ import { viewerToday } from "@base/util/viewer-zone";
  * Título de sección + rango de fechas + filtro de campañas. Todo vive en la URL (?from&to&camp),
  * así se puede compartir un enlace ya filtrado.
  */
-export async function PageHeader({ title, description, from, to, path, scope, options }: {
+export async function PageHeader({ title, description, from, to, path, scope, options, lineAssign }: {
   title: string; description?: string; from: string; to: string; path: string;
   scope?: CampaignScope; options?: CampaignOption[];
+  lineAssign?: LineAssign; // solo admins, en el Resumen: asignar línea a campañas desde el filtro
 }) {
   const camp = scope ? campQuery(scope) : "";
   const today = await viewerToday(); // "hoy" de quien mira, no de UTC
@@ -39,7 +40,7 @@ export async function PageHeader({ title, description, from, to, path, scope, op
             );
           })}
         </nav>
-        {options && scope && <CampaignFilter options={options} scope={scope} />}
+        {options && scope && <CampaignFilter options={options} scope={scope} lineAssign={lineAssign} />}
         {/* En celular: desde → hasta + Aplicar en una sola fila (fechas flexibles) */}
         <form action={path} className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-2 text-sm sm:flex sm:w-auto">
           {scope?.param && <input type="hidden" name="camp" value={scope.param} />}

@@ -238,12 +238,17 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   upsert) lo pasa a `automated = true`, `origin = 'manual_resend'` cuando sus primeros 40 caracteres coinciden con un
   automático que ese lead recibió antes. No cuenta como contacto humano; el reporte de seguimiento lo avisa
   (`manual_resends` en `followup_lead_activity`).
-- **Leads separado por línea** (`capa1-base/util/lineas.ts`, `campaignLine`): campaña con "reclutamiento" en el nombre
-  (sin importar mayúsculas/tildes) = Reclutamiento; el resto (y sin campaña) = Insurance. Menú: "Leads Insurance"
-  (`/leads/insurance`) y "Leads Reclutamiento" (`/leads/reclutamiento`), ruta `app/(dashboard)/leads/[linea]/`; la vista
-  compartida es `leads/leads-view.tsx` (`LeadsView`, filtra leads, opciones de campañas y próximas citas por línea).
-  `/leads` = todas las líneas (destino de los enlaces de reportes/Resumen); selector Insurance | Reclutamiento | Todos
-  arriba de la lista. En el menú las dos entradas comparten el permiso `leads` (`perm` en `sidebar.tsx`).
+- **Líneas de trabajo** (Vida / Comercial-Casas / Reclutamiento; `capa1-base/util/lineas.ts`, migración `campaign_lines`):
+  SOLO separan las pestañas de Leads; Resumen, Campañas, Anuncios y reportes muestran todas las campañas, tengan línea o
+  no. Línea = la fijada por un admin (tabla `campaign_lines`, `getFixedLines`/`setCampaignLineOp` en
+  `capa1-base/datos/campaign-lines.ts`, Server Action `setCampaignLine` en `capa3-cuentas/acciones.ts`, permiso `lineas` =
+  admin) o la automática por palabra completa del nombre (`autoLine`: reclutamiento → Reclutamiento; auto/casa/casas/
+  comercial → Comercial; vida/IUL/life/gastos finales → Vida). Sin palabra = sin línea: sus leads solo salen en `/leads`
+  ("Todos"). Menú: Leads Vida (`/leads/vida`), Leads Comercial/Casas (`/leads/comercial`), Leads Reclutamiento
+  (`/leads/reclutamiento`); `/leads/insurance` redirige a vida; vista compartida `leads/leads-view.tsx`. Solo admins:
+  columna "Línea" en Campañas (`line-select.tsx`), bloque "Sin línea" con "Asignar a" en el filtro de campañas del
+  Resumen (`lineAssign` en `PageHeader`/`CampaignFilter`) y aviso `UnlinedCampaignsNote` (Resumen, Campañas y pestañas de
+  Leads) si hay campañas activas sin línea. Las pestañas no llevan selector de línea (el menú ya las separa).
 - Los dos reportes muestran en el encabezado (y en el CSV) los NOMBRES de las campañas filtradas (vacío = todas).
 - **Agente asignado después de crear el contacto**: GHL suele asignar (rotación/workflow) segundos DESPUÉS del
   ContactCreate, así que el webhook lo guardaba sin agente. Ahora `handleGhlEvent` (`capa1-base/conexiones/ghl/webhook.ts`)

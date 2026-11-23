@@ -1,4 +1,9 @@
-import { accesoA } from "@cuentas/roles";
+import { accesoA, puede } from "@cuentas/roles";
+import { myAccess } from "@cuentas/auth";
+import { setCampaignLine } from "@cuentas/acciones";
+import { getFixedLines } from "@base/datos/campaign-lines";
+import { resolveLine, type LineaInfo } from "@base/util/lineas";
+import { UnlinedCampaignsNote } from "@visual/componentes/unlined-note";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { mergeCampaigns, CampaignsTable, NewCampaignsNote } from "@visual/componentes/campaigns-table";
@@ -64,11 +69,24 @@ export default async function ResumenPage({ searchParams }: { searchParams: Sear
   const daily = days.map((r) => ({ date: r.key, spend: r.spend, leads_ghl: r.leads_ghl, opps_appointment: r.opps_appointment }));
   const qs = `?from=${from}&to=${to}${campQuery(scope)}`;
   const leadsHref = (etapa?: string) => `/leads${qs}${etapa ? `&etapa=${etapa}` : ""}`;
-  const header = <PageHeader title="Resumen" from={from} to={to} path="/" scope={scope} options={options} />;
+  // Solo admins: línea de cada campaña en el filtro, y asignarla a las que no tienen. Las líneas solo separan
+  // las pestañas de Leads: el Resumen sigue mostrando TODAS las campañas, tengan línea o no.
+  const isLineAdmin = puede(await myAccess().catch(() => null), "lineas");
+  let lineAssign: { lines: Record<string, LineaInfo>; assign: typeof setCampaignLine } | undefined;
+  let unlinedActive: string[] = [];
+  if (isLineAdmin) {
+    const fixed = await getFixedLines().catch((error) => { logError("dashboard.resumen.lineas", error); return new Map(); });
+    const lines: Record<string, LineaInfo> = {};
+    for (const o of options) lines[o.id] = resolveLine(o.name, fixed.get(o.id));
+    lineAssign = { lines, assign: setCampaignLine };
+    unlinedActive = options.filter((o) => o.active && !lines[o.id].line).map((o) => o.name);
+  }
+  const header = <PageHeader title="Resumen" from={from} to={to} path="/" scope={scope} options={options} lineAssign={lineAssign} />;
 
   return (
     <div className="space-y-5">
       {header}
+      {unlinedActive.length > 0 && <UnlinedCampaignsNote names={unlinedActive} where="filtro" />}
 
       {/* 1. Indicadores con variación vs. período anterior. El costo por cita manda: va destacado. */}
       <section>
