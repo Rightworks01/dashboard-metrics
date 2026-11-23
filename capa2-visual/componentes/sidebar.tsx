@@ -12,7 +12,8 @@ import { TimeZonePicker } from "@visual/componentes/timezone-picker";
 // (capa3-cuentas/roles.ts): el layout pasa `allowed` con las claves permitidas.
 // `perm` = clave de permiso si es distinta de `key` (dos entradas pueden compartir un permiso).
 // `tone` = color del ícono (las pestañas de Leads usan el color de su línea, como en los filtros).
-type Item = { key: string; perm?: string; href: string; label: string; icon: string; tone?: string; soon?: boolean };
+// `icon2` = segundo ícono dentro del mismo cuadro (Comercial: casa arriba a la izquierda + carro abajo a la derecha).
+type Item = { key: string; perm?: string; href: string; label: string; icon: string; icon2?: string; tone?: string; soon?: boolean };
 
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
@@ -20,7 +21,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
     items: [
       { key: "resumen", href: "/", label: "Resumen", icon: "M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z" },
       { key: "leads-vida", perm: "leads", href: "/leads/vida", label: "Leads Vida", icon: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z", tone: "text-series-1" },
-      { key: "leads-comercial", perm: "leads", href: "/leads/comercial", label: "Leads Comercial/Casas", icon: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z", tone: "text-series-3" },
+      { key: "leads-comercial", perm: "leads", href: "/leads/comercial", label: "Leads Comercial", icon: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z", icon2: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16m11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5M5 11l1.5-4.5h11L19 11z", tone: "text-series-3" },
       { key: "leads-reclutamiento", perm: "leads", href: "/leads/reclutamiento", label: "Leads Reclutamiento", icon: "M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4", tone: "text-series-2" },
       { key: "campanas", href: "/campanas", label: "Campañas", icon: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12m0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6" },
       { key: "publicar", href: "/publicar", label: "Publicar", icon: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" },
@@ -44,10 +45,16 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   },
 ];
 
-function Icon({ d, tone }: { d: string; tone?: string }) {
+function Icon({ d, d2, tone }: { d: string; d2?: string; tone?: string }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={`size-4 shrink-0 fill-current ${tone ?? ""}`}>
-      <path d={d} />
+      {d2 ? (
+        <>
+          <path d={d} transform="translate(-1 -1.5) scale(0.8)" />
+          {/* borde del color del menú para que el carro se separe de la casa */}
+          <path d={d2} transform="translate(8 9) scale(0.66)" stroke="var(--surface)" strokeWidth={3.5} paintOrder="stroke" />
+        </>
+      ) : <path d={d} />}
     </svg>
   );
 }
@@ -112,7 +119,7 @@ export function Sidebar({ email, allowed, tools, signOut }: {
                   className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                     active ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                   }`}>
-                  <Icon d={item.icon} tone={item.tone} />
+                  <Icon d={item.icon} d2={item.icon2} tone={item.tone} />
                   {item.label}
                 </Link>
               );

@@ -50,7 +50,7 @@ function toOptions(counts: Map<string, { label: string; count: number }>, missin
 const isId = (v?: string) => (v && /^[\w-]+$/.test(v) ? v : undefined);
 
 /**
- * Lista de leads. `linea` = solo los de esa línea (Vida / Comercial-Casas / Reclutamiento: la fijada por un admin o
+ * Lista de leads. `linea` = solo los de esa línea (Vida / Comercial / Reclutamiento: la fijada por un admin o
  * la automática por el nombre de la campaña, `resolveLine`); null = todos, también los de campañas sin línea
  * (adonde llegan los enlaces de reportes y Resumen).
  */

@@ -6,7 +6,7 @@ export type Linea = "vida" | "comercial" | "reclutamiento";
 
 export const LINEAS: Record<Linea, { label: string; short: string; path: string }> = {
   vida: { label: "Leads Vida", short: "Vida", path: "/leads/vida" },
-  comercial: { label: "Leads Comercial/Casas", short: "Comercial/Casas", path: "/leads/comercial" },
+  comercial: { label: "Leads Comercial", short: "Comercial", path: "/leads/comercial" },
   reclutamiento: { label: "Leads Reclutamiento", short: "Reclutamiento", path: "/leads/reclutamiento" },
 };
 export const LINEA_ORDER: Linea[] = ["vida", "comercial", "reclutamiento"];
