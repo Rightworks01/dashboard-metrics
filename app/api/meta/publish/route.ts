@@ -4,6 +4,7 @@ import { myAccess } from "@cuentas/auth";
 import { logError, logInfo } from "@base/conexiones/log";
 import { syncMetaCampaigns } from "@base/conexiones/meta/campaigns";
 import { getPublishOptions, metaErrorMessage, publishCampaign, publishSchema, removeCreatives } from "@base/conexiones/meta/publish";
+import { isSameOrigin } from "@base/conexiones/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export async function GET() {
 
 /** Crea campaña + conjunto + anuncios EN PAUSA. */
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "origen no permitido" }, { status: 403 });
   const access = await admin();
   if (!access) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   const started = Date.now();

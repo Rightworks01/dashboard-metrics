@@ -2,7 +2,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
-import { EMBED_COOKIE, EMBED_HEADER } from "@base/conexiones/supabase/sesion";
+import { EMBED_COOKIE, EMBED_HEADER, SESSION_COOKIE } from "@base/conexiones/supabase/sesion";
 import { requireEnv } from "@base/conexiones/env";
 
 // Cliente con ANON_KEY + sesión del usuario (cookies): respeta RLS.
@@ -12,7 +12,7 @@ export async function supabaseServer(): Promise<SupabaseClient> {
   // Rutas /embed (iframe en GHL): sesión aparte con cookie particionada (ver lib/embed.ts)
   const embedded = (await headers()).get(EMBED_HEADER) === "1";
   return createServerClient(requireEnv("NEXT_PUBLIC_SUPABASE_URL"), requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
-    ...(embedded ? { cookieOptions: EMBED_COOKIE } : {}),
+    cookieOptions: embedded ? EMBED_COOKIE : SESSION_COOKIE,
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {

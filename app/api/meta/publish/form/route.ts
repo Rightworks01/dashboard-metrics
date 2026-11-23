@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { myAccess } from "@cuentas/auth";
 import { logError, logInfo } from "@base/conexiones/log";
 import { createLeadForm, leadFormSchema, metaErrorMessage } from "@base/conexiones/meta/publish";
+import { isSameOrigin } from "@base/conexiones/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Crea un formulario instantáneo en la página (solo admins). */
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "origen no permitido" }, { status: 403 });
   const access = await myAccess().catch(() => null);
   if (!puede(access, "publicar")) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   const parsed = leadFormSchema.safeParse(await req.json().catch(() => null));

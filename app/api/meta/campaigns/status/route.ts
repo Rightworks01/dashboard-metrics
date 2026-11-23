@@ -3,6 +3,7 @@ import { z } from "zod";
 import { campaignControlUser } from "@cuentas/auth";
 import { logError, logInfo } from "@base/conexiones/log";
 import { setCampaignStatus } from "@base/conexiones/meta/campaigns";
+import { isSameOrigin } from "@base/conexiones/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ const body = z.object({
 
 // Pausa o activa una campaña de Meta. Lo llama el dashboard con la sesión del usuario.
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "origen no permitido" }, { status: 403 });
   const user = await campaignControlUser();
   if (!user) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 

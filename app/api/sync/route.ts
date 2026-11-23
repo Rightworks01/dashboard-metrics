@@ -6,6 +6,7 @@ import { logError, logInfo } from "@base/conexiones/log";
 import { syncMetaCampaigns } from "@base/conexiones/meta/campaigns";
 import { syncMetaAds } from "@base/conexiones/meta/sync";
 import { refreshMetrics } from "@base/conexiones/supabase/admin";
+import { isSameOrigin } from "@base/conexiones/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export const maxDuration = 300;
 // Botones "Sincronizar GHL / Meta" del menú (solo admins): lo mismo que los crons, a pedido, con la
 // sesión de Supabase en vez de CRON_SECRET. Ventanas de un run normal: 26 h en GHL, 3 días en Meta.
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "origen no permitido" }, { status: 403 });
   const access = await myAccess().catch(() => null);
   if (!puede(access, "sincronizar")) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
 

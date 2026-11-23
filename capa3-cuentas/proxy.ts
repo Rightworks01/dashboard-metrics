@@ -1,7 +1,7 @@
 // Capa 3 · Cuentas: forma de entrar. Lo llama proxy.ts (raíz) en cada petición.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { EMBED_COOKIE, EMBED_HEADER } from "@base/conexiones/supabase/sesion";
+import { EMBED_COOKIE, EMBED_HEADER, SESSION_COOKIE } from "@base/conexiones/supabase/sesion";
 
 // Refresca la sesión de Supabase Auth en cada request y manda a /login a quien no la tenga.
 // /api queda fuera: webhooks y cron tienen su propia autenticación por secreto.
@@ -21,7 +21,7 @@ export async function sessionProxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
     {
-      ...(embedded ? { cookieOptions: EMBED_COOKIE } : {}),
+      cookieOptions: embedded ? EMBED_COOKIE : SESSION_COOKIE,
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet, headers) => {

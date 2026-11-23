@@ -6,6 +6,7 @@ import { myAccess } from "@cuentas/auth";
 import { logError } from "@base/conexiones/log";
 import { CREATIVES_BUCKET } from "@base/conexiones/meta/publish";
 import { supabaseAdmin } from "@base/conexiones/supabase/admin";
+import { isSameOrigin } from "@base/conexiones/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ const body = z.object({
 
 /** URL firmada para que el navegador suba un creativo directo a Supabase Storage (Vercel no acepta archivos grandes). */
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "origen no permitido" }, { status: 403 });
   const access = await myAccess().catch(() => null);
   if (!puede(access, "publicar")) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   const parsed = body.safeParse(await req.json().catch(() => null));

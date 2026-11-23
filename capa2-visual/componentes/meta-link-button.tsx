@@ -13,8 +13,7 @@ export function MetaLinkDismissable({ windowEnd, href, children }: { windowEnd: 
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
   const dismiss = () => {
-    const secure = location.protocol === "https:" ? "; secure" : "";
-    document.cookie = `${META_LINK_DISMISS_COOKIE}=${windowEnd}; path=/; max-age=172800; samesite=lax${secure}`;
+    document.cookie = `${META_LINK_DISMISS_COOKIE}=${windowEnd}; path=/; max-age=172800; ${location.protocol === "https:" ? "samesite=none; secure; partitioned" : "samesite=lax"}`;
     setHidden(true);
   };
   return (

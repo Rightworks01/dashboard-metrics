@@ -196,6 +196,14 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   `lead-form-builder.tsx`: título 60, texto final 160, pregunta 80…; si se pasa, ámbar "Meta probablemente lo rechace"); en
   los anuncios, lo que se ve antes de "Ver más" (texto 125, título 40, descripción 30).
 - **CPC** (inversión ÷ clics) en la tabla de Anuncios, junto al CTR, ordenable (`rollupRow` en `capa1-base/datos/metrics.ts`).
+- **Centro de Control dentro de GHL** (widget IFrame de un Dashboard de la subcuenta): todo el sitio se puede incrustar
+  SOLO desde `ALLOWED_PARENT_ORIGINS` (`frame-ancestors` en `next.config.ts`, sin X-Frame-Options). La sesión usa la cookie
+  `SESSION_COOKIE` (`sb-rw-session`, SameSite=None + Secure + Partitioned/CHIPS; `capa1-base/conexiones/supabase/sesion.ts`):
+  una sesión para el dashboard abierto directo y otra aparte dentro de GHL (cada una con su login). Como la cookie es
+  SameSite=None, las API POST con sesión exigen `isSameOrigin` (`capa1-base/conexiones/origin.ts`; 403 si no) — las Server
+  Actions ya las protege Next. Cookies del navegador (`cb-tz`, `rw-meta-link-dismissed`) también particionadas. El login
+  dentro de un iframe ofrece abrir en pestaña (`capa3-cuentas/login/in-frame-note.tsx`, Safari). Entrada automática con el
+  usuario de GHL: pendiente (requiere app privada de Marketplace con SSO).
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
   `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`capa3-cuentas/embed.ts`):
   1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (app.rightworksinsurance.com y app.gohighlevel.com) (o el propio dashboard tras el login),

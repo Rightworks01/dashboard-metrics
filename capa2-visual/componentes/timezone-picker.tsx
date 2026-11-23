@@ -46,7 +46,7 @@ export function TimeZonePicker() {
   // El servidor usa la misma zona que se ve (para "hoy" y los atajos)
   useEffect(() => {
     if (readCookie() !== zone) {
-      document.cookie = `${COOKIE}=${encodeURIComponent(zone)}; path=/; max-age=31536000; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
+      document.cookie = `${COOKIE}=${encodeURIComponent(zone)}; path=/; max-age=31536000; ${location.protocol === "https:" ? "samesite=none; secure; partitioned" : "samesite=lax"}`;
       router.refresh();
     }
   }, [zone, router]);

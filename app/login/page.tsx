@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ThemeToggle } from "@visual/componentes/theme-toggle";
 import { signIn } from "@cuentas/login/actions";
 import { PasswordInput } from "@cuentas/login/password-input";
+import { InFrameNote } from "@cuentas/login/in-frame-note";
 
 const ERRORS: Record<string, string> = {
   invalid: "Escribe un email válido y la contraseña.",
@@ -37,6 +38,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <button type="submit" className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90">
           Entrar
         </button>
+        <InFrameNote />
       </form>
     </main>
   );
