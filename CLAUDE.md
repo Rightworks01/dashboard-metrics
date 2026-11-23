@@ -202,8 +202,15 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   una sesión para el dashboard abierto directo y otra aparte dentro de GHL (cada una con su login). Como la cookie es
   SameSite=None, las API POST con sesión exigen `isSameOrigin` (`capa1-base/conexiones/origin.ts`; 403 si no) — las Server
   Actions ya las protege Next. Cookies del navegador (`cb-tz`, `rw-meta-link-dismissed`) también particionadas. El login
-  dentro de un iframe ofrece abrir en pestaña (`capa3-cuentas/login/in-frame-note.tsx`, Safari). Entrada automática con el
-  usuario de GHL: pendiente (requiere app privada de Marketplace con SSO).
+  dentro de un iframe ofrece abrir en pestaña (`capa3-cuentas/login/in-frame-note.tsx`, Safari).
+- **Entrada automática con el usuario de GHL (SSO)**: app privada de Marketplace "Centro de Control RW" con página
+  personalizada `https://dashboard.rightworksinsurance.com/login`. En `/login` dentro de un iframe, `GhlSso`
+  (`capa3-cuentas/login/ghl-sso.tsx`, solo si existe `GHL_SSO_KEY`) manda `REQUEST_USER_DATA` a GHL; el payload cifrado
+  lo descifra `decryptGhlSso` (`capa1-base/conexiones/ghl/sso.ts`, AES-256-CBC formato OpenSSL/CryptoJS) en la Server
+  Action `ssoSignIn` (`capa3-cuentas/login/sso-actions.ts`): exige `activeLocation` = `GHL_LOCATION_ID`, crea la cuenta si no
+  existe y aplica en CADA entrada: Admin de GHL → Administrador; User de GHL → Agente (`agent_id` = su ID de GHL). Nunca
+  le quita el admin a quien ya es Administrador del dashboard. Sesión vía `generateLink` (magiclink, sin email) +
+  `verifyOtp` en el servidor. Si GHL no responde (p. ej. el widget IFrame de un Dashboard), queda el login normal.
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
   `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`capa3-cuentas/embed.ts`):
   1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (app.rightworksinsurance.com y app.gohighlevel.com) (o el propio dashboard tras el login),
