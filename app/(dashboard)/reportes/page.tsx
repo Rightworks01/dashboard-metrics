@@ -1,6 +1,7 @@
 import { accesoA } from "@cuentas/roles";
 import { saveWinValue } from "@cuentas/acciones";
 import { Card, ErrorNote, NoAccessNote, PageHeader } from "@visual/componentes/ui";
+import { ReportTabs } from "@visual/componentes/report-tabs";
 import { PrintButton, WinValueForm } from "@base/acciones/report-actions";
 import { ReportForm } from "@base/acciones/report-form";
 import { myAccess, agentScope } from "@cuentas/auth";
@@ -43,6 +44,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Sea
     <div className="space-y-5">
       <div className="print:hidden">
         <PageHeader title="Reportes" description="elige período y campañas arriba" from={from} to={to} path="/reportes" scope={scope} options={options} />
+        <div className="mt-4"><ReportTabs active="inversion" query={new URLSearchParams({ from, to, ...(scope.param ? { camp: scope.param } : {}) }).toString()} /></div>
       </div>
       <ReportForm from={from} to={to} camp={scope.param} agents={agents}
         initial={{

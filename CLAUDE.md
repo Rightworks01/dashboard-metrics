@@ -163,6 +163,15 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   proporcional y "según quién cerró" (ganados del agente vinculado; los no vinculados se reparten el resto). Resumen en
   texto + avisos. PDF = `window.print()` con estilos `@media print` en `capa2-visual/estilos/globals.css` (siempre claro; menú y formulario
   ocultos); CSV en `/reportes/csv` (mismos parámetros, BOM UTF-8 para Excel).
+- **Reporte de seguimiento en el CRM** (`/reportes/seguimiento`, pestaña junto a "Campañas e inversión" en Reportes,
+  `report-tabs.tsx`; mismo permiso `reportes`; migración `followup_report`): `buildFollowupReport` (`capa1-base/datos/followup.ts`)
+  con `leads_list` + `followup_lead_activity` (por lead: mensajes humanos/automáticos/del lead, llamadas salientes/contestadas/
+  segundos, entrantes perdidas y sin devolver, último contacto) + `followup_appointments` (citas de la cohorte; responsable =
+  `assigned_user_id` del calendario o el agente del lead) + `sequence_reply_stats`. Muestra resumen en texto + avisos (p. ej. sin
+  llamadas en GHL), contacto y respuesta, embudo, citas por estado y por responsable, tabla por agente, leads sin contacto
+  +24 h, respondieron sin respuesta humana, llamadas perdidas sin devolver, sin agente, etapa del pipeline, por campaña y
+  respuesta a los automáticos. Vista en `capa2-visual/componentes/followup-report.tsx`; PDF (print) y CSV en
+  `/reportes/seguimiento/csv` (incluye una fila por lead).
 - **Publicar campañas** (`/publicar`, solo `is_admin`; `capa1-base/conexiones/meta/publish.ts`, `capa1-base/acciones/publish-wizard.tsx`):
   asistente que crea en Meta campaña `OUTCOME_LEADS` + conjunto (formulario instantáneo, `destination_type` ON_AD,
   presupuesto diario, EE. UU. o estados, idioma, Facebook/Instagram) + anuncios (imagen o video, texto, título,
