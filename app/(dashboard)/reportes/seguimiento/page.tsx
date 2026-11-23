@@ -3,7 +3,7 @@ import { agentScope } from "@cuentas/auth";
 import { PrintButton } from "@base/acciones/report-actions";
 import { logError } from "@base/conexiones/log";
 import { buildFollowupReport, type FollowupReport } from "@base/datos/followup";
-import { getCampaignOptions, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { getCampaignOptions, getCampaigns, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
 import { FollowupReportView } from "@visual/componentes/followup-report";
 import { ReportTabs } from "@visual/componentes/report-tabs";
 import { ErrorNote, NoAccessNote, PageHeader } from "@visual/componentes/ui";
@@ -30,13 +30,18 @@ export default async function SeguimientoPage({ searchParams }: { searchParams: 
   let report: FollowupReport;
   let options: Awaited<ReturnType<typeof getCampaignOptions>>;
   try {
-    [report, options] = await Promise.all([buildFollowupReport(from, to, scope.ids), getCampaignOptions(from, to, scopeAgent)]);
+    const [catalog, opts] = await Promise.all([getCampaigns(), getCampaignOptions(from, to, scopeAgent)]);
+    options = opts;
+    // Nombres de las campañas del reporte (sin filtro = todas). "0" = ninguna activa.
+    const names = new Map(catalog.map((c) => [c.id, c.name]));
+    const campaignNames = scope.mode === "todas" ? [] : scope.ids.filter((id) => id !== "0").map((id) => names.get(id) ?? `Campaña ${id}`);
+    report = await buildFollowupReport(from, to, scope.ids, campaignNames);
   } catch (error) {
     logError("dashboard.reportes.seguimiento", error, { from, to });
     return <>{header()}<ErrorNote scope="dashboard.reportes.seguimiento" what="el reporte de seguimiento" /></>;
   }
 
-  const campaignsLabel = scope.mode === "todas" ? "todas las campañas" : scope.mode === "activas" ? "campañas activas" : `${scope.ids.length} campañas elegidas`;
+  const campaignsLabel = scope.mode === "activas" ? "las activas en Meta" : scope.mode === "custom" ? "elegidas en el filtro" : "todas";
   return (
     <div className="space-y-5">
       {header(options)}

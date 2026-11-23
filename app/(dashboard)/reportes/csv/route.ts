@@ -1,7 +1,7 @@
 import { puede } from "@cuentas/roles";
 import { myAccess } from "@cuentas/auth";
 import { logError } from "@base/conexiones/log";
-import { resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { getCampaigns, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
 import { buildReport, FUNDING, parseReportParams } from "@base/datos/report";
 
 export const runtime = "nodejs";
@@ -26,7 +26,10 @@ export async function GET(req: Request) {
   try {
     const r = await buildReport(from, to, scope.ids, parseReportParams(raw));
     const rows: string[] = [];
-    rows.push(line("Reporte de campañas Right Works", `${from} a ${to}`), line("Inversión", FUNDING[r.params.funding]), line("Resumen", r.summary));
+    const names = new Map((await getCampaigns()).map((c) => [c.id, c.name]));
+    const campaignNames = scope.mode === "todas" ? [] : scope.ids.filter((id) => id !== "0").map((id) => names.get(id) ?? `Campaña ${id}`);
+    rows.push(line("Reporte de campañas Right Works", `${from} a ${to}`),
+      line(campaignNames.length === 1 ? "Campaña" : "Campañas", campaignNames.length ? campaignNames.join(" · ") : "Todas las campañas de la cuenta"), line("Inversión", FUNDING[r.params.funding]), line("Resumen", r.summary));
     for (const b of r.bullets) rows.push(line("", b.text));
     rows.push("", line("EMBUDO"), line("Inversión", "Leads Meta", "Leads GHL", "Respondieron", "Citas", "Asistieron", "Ganados", "CPL real", "Costo por cita", "Equilibrio por ganado"));
     rows.push(line(r.investment, r.total?.leads_reported ?? 0, r.total?.leads_ghl ?? 0, r.totals.responded, r.totals.citas, r.totals.showed, r.totals.wins,

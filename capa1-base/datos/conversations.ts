@@ -79,6 +79,10 @@ export async function recordMessages(conversationId: string, messages: Normalize
     "source_channel,id_external",
   );
 
+  // El upsert reescribe automated/origin: volver a marcar los reenvíos manuales de automáticos que fallaron
+  const resend = await supabaseAdmin().rpc("mark_manual_resends", { p_conversation_ids: [conversationId] });
+  if (resend.error) throw new Error(`mark_manual_resends: ${resend.error.message}`);
+
   const { error } = await supabaseAdmin().rpc("recompute_conversation_flags", {
     p_conversation_ids: [conversationId],
   });

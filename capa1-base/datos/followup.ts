@@ -20,6 +20,7 @@ const activityRow = z.object({
   human_msgs_out: num, auto_msgs_out: num, inbound_msgs: num,
   calls_out: num, calls_answered: num, call_seconds: num, calls_in: num, missed_in: num, missed_unreturned: num,
   last_human_at: z.string().nullable(), last_inbound_at: z.string().nullable(),
+  manual_resends: num.default(0),
 });
 type Activity = z.infer<typeof activityRow>;
 
@@ -37,7 +38,7 @@ const seqRow = z.object({
 
 const EMPTY_ACTIVITY: Omit<Activity, "contact_id"> = {
   human_msgs_out: 0, auto_msgs_out: 0, inbound_msgs: 0, calls_out: 0, calls_answered: 0, call_seconds: 0,
-  calls_in: 0, missed_in: 0, missed_unreturned: 0, last_human_at: null, last_inbound_at: null,
+  calls_in: 0, missed_in: 0, missed_unreturned: 0, last_human_at: null, last_inbound_at: null, manual_resends: 0,
 };
 
 /** Un lead con su actividad de seguimiento. */
@@ -65,6 +66,7 @@ export type Tally = {
   callsIn: number;
   missedIn: number;
   missedUnreturned: number;
+  manualResends: number;      // automáticos que fallaron y se reenviaron a mano (cuentan como automáticos)
   withCita: number;           // leads con cita (calendario u oportunidad en etapa de cita)
   won: number;
 };
@@ -76,6 +78,7 @@ export type CampaignFollowup = Tally & { campaignId: string | null; campaignName
 
 export type FollowupReport = {
   from: string; to: string; generatedAt: string;
+  campaignNames: string[];   // campañas del reporte (vacío = todas)
   total: Tally;
   agents: AgentFollowup[];
   campaigns: CampaignFollowup[];
@@ -124,6 +127,7 @@ function tally(rows: FollowupLead[], now: number): Tally {
     callsIn: sum("calls_in"),
     missedIn: sum("missed_in"),
     missedUnreturned: sum("missed_unreturned"),
+    manualResends: sum("manual_resends"),
     withCita: rows.filter((l) => l.has_cita).length,
     won: rows.filter((l) => l.won).length,
   };
@@ -141,7 +145,8 @@ const pct = (n: number, d: number) => (d ? fmtPct(n / d) : "—");
 /** "1 cita pendiente" / "3 citas pendientes": `one` y `many` sin el número. */
 const n = (count: number, one: string, many: string) => `${fmtInt(count)} ${count === 1 ? one : many}`;
 
-export async function buildFollowupReport(from: string, to: string, campaigns: string[]): Promise<FollowupReport> {
+/** `campaignNames` = nombres de las campañas filtradas (para el encabezado); vacío = todas. */
+export async function buildFollowupReport(from: string, to: string, campaigns: string[], campaignNames: string[] = []): Promise<FollowupReport> {
   const supabase = await supabaseServer();
   const args = { p_from: from, p_to: to, p_campaigns: campaigns.length ? campaigns : null };
   const [leads, act, appts, seq] = await Promise.all([
@@ -234,12 +239,16 @@ export async function buildFollowupReport(from: string, to: string, campaigns: s
     if (t.humanMsgs === 0 && t.callsOut === 0) {
       notes.push("Todos los mensajes enviados a estos leads son automáticos (workflows y campañas). Ningún agente les escribió desde GHL.");
     }
+    if (t.manualResends) {
+      notes.push(`${n(t.manualResends, "mensaje figura enviado por un agente, pero fue un reenvío manual", "mensajes figuran enviados por un agente, pero fueron reenvíos manuales")} `
+        + "de un mensaje automático cuyo envío falló. Se cuentan como automáticos, no como contacto humano.");
+    }
     if (attention.unassigned.length) notes.push(`${n(attention.unassigned.length, "lead no tiene", "leads no tienen")} agente asignado en GHL.`);
     if (appointmentsByPhase.paso) notes.push(`${n(appointmentsByPhase.paso, "cita ya pasó", "citas ya pasaron")} y nadie marcó en GHL si el lead asistió: márcala en GHL para que "Asistió" sea real.`);
   }
 
   return {
-    from, to, generatedAt: new Date(now).toISOString(),
+    from, to, generatedAt: new Date(now).toISOString(), campaignNames,
     total, agents, campaigns: campaignsOut, stages,
     appointments, appointmentsByPhase, appointmentsByOwner,
     sequence: z.array(seqRow).parse(seq.data ?? []),

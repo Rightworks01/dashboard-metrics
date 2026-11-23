@@ -7,7 +7,7 @@ import { ReportForm } from "@base/acciones/report-form";
 import { myAccess, agentScope } from "@cuentas/auth";
 import { fmtDay, fmtInt, fmtMoney, fmtPct, pctChange, fmtSignedPct, titleCase } from "@base/util/format";
 import { logError } from "@base/conexiones/log";
-import { getCampaignOptions, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { getCampaignOptions, getCampaigns, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
 import { buildReport, FUNDING, getCrmUsers, parseReportParams, recoveredText, type Recovery, type Report } from "@base/datos/report";
 
 export const dynamic = "force-dynamic";
@@ -28,8 +28,12 @@ export default async function ReportesPage({ searchParams }: { searchParams: Sea
   let agents: { id: string; name: string }[] = [];
   let options: Awaited<ReturnType<typeof getCampaignOptions>> = [];
   let report: Report | null = null;
+  let campaignNames: string[] = [];
   try {
-    [agents, options] = await Promise.all([getCrmUsers(), getCampaignOptions(from, to, scopeAgent)]);
+    let catalog: Awaited<ReturnType<typeof getCampaigns>>;
+    [agents, options, catalog] = await Promise.all([getCrmUsers(), getCampaignOptions(from, to, scopeAgent), getCampaigns()]);
+    const names = new Map(catalog.map((c) => [c.id, c.name]));
+    campaignNames = scope.mode === "todas" ? [] : scope.ids.filter((id) => id !== "0").map((id) => names.get(id) ?? `Campaña ${id}`);
     if (generate) report = await buildReport(from, to, scope.ids, params);
   } catch (error) {
     logError("dashboard.reportes", error, { from, to });
@@ -52,7 +56,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Sea
           rows: params.investors.map((i) => ({ name: i.name, amount: i.amount?.toString() ?? "", agentId: i.agentId ?? "" })),
           vmin: params.valueMin?.toString() ?? "", vmax: params.valueMax?.toString() ?? "",
         }} />
-      {report && <ReportView report={report} csvHref={csvHref} campaignsLabel={scope.mode === "todas" ? "todas las campañas" : scope.mode === "activas" ? "campañas activas" : `${scope.ids.length} campañas elegidas`} />}
+      {report && <ReportView report={report} csvHref={csvHref} campaignNames={campaignNames} />}
     </div>
   );
 }
@@ -69,7 +73,7 @@ function RecoveryCell({ r }: { r: Recovery }) {
   );
 }
 
-function ReportView({ report: r, csvHref, campaignsLabel }: { report: Report; csvHref: string; campaignsLabel: string }) {
+function ReportView({ report: r, csvHref, campaignNames }: { report: Report; csvHref: string; campaignNames: string[] }) {
   const t = r.total;
   const leads = t?.leads_ghl ?? 0;
   const multiAgent = r.agents.filter((a) => a.leads > 0).length > 1;
@@ -93,7 +97,11 @@ function ReportView({ report: r, csvHref, campaignsLabel }: { report: Report; cs
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-ink-3">Reporte de campañas · Right Works</p>
-          <h2 className="text-lg font-semibold text-ink">{fmtDay(r.from)} – {fmtDay(r.to)} · {campaignsLabel}</h2>
+          <h2 className="text-lg font-semibold text-ink">{fmtDay(r.from)} – {fmtDay(r.to)}</h2>
+          <p className="mt-0.5 text-sm text-ink-2">
+            <span className="font-medium text-ink">{campaignNames.length === 1 ? "Campaña" : "Campañas"}:</span>{" "}
+            {campaignNames.length ? campaignNames.join(" · ") : "todas las campañas de la cuenta"}
+          </p>
           <p className="text-xs text-ink-3">Inversión: {FUNDING[r.params.funding]} · generado el {new Date().toLocaleDateString("es-US", { dateStyle: "long" })}</p>
         </div>
         <div className="flex gap-2 print:hidden">

@@ -137,7 +137,12 @@ export function FollowupReportView({ report: r, campaignsLabel, actions, leadHre
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-ink-3">Reporte de seguimiento en el CRM · Right Works</p>
-          <h2 className="text-lg font-semibold text-ink">Leads que entraron del {fmtDay(r.from)} al {fmtDay(r.to)} · {campaignsLabel}</h2>
+          <h2 className="text-lg font-semibold text-ink">Leads que entraron del {fmtDay(r.from)} al {fmtDay(r.to)}</h2>
+          <p className="mt-0.5 text-sm text-ink-2">
+            <span className="font-medium text-ink">{r.campaignNames.length === 1 ? "Campaña" : "Campañas"}:</span>{" "}
+            {r.campaignNames.length ? r.campaignNames.join(" · ") : "todas las campañas de la cuenta"}
+            {r.campaignNames.length > 0 && <span className="text-ink-3"> ({campaignsLabel})</span>}
+          </p>
           <p className="text-xs text-ink-3">Generado el <LocalTime iso={r.generatedAt} /> · leads de Meta, por fecha de entrada</p>
         </div>
         {actions && <div className="flex gap-2 print:hidden">{actions}</div>}

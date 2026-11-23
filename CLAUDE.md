@@ -233,6 +233,12 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   por `GHL_STATE_CUSTOM_FIELD_ID` (uno o varios, por coma) o resueltos por nombre; requiere scope
   `locations/customFields.readonly`. `contacts.geo_synced_at` null = pendiente: `reconcile-ghl` hace un barrido
   completo de contactos mientras haya pendientes (migración `contact_geo_synced`).
+- **Reenvíos manuales de automáticos** (migración `manual_resends`): si el envío de un workflow falla y el agente reenvía a
+  mano el MISMO mensaje, GHL lo marca manual. `mark_manual_resends(conversaciones)` (la llama `recordMessages` tras cada
+  upsert) lo pasa a `automated = true`, `origin = 'manual_resend'` cuando sus primeros 40 caracteres coinciden con un
+  automático que ese lead recibió antes. No cuenta como contacto humano; el reporte de seguimiento lo avisa
+  (`manual_resends` en `followup_lead_activity`).
+- Los dos reportes muestran en el encabezado (y en el CSV) los NOMBRES de las campañas filtradas (vacío = todas).
 - **Agente asignado después de crear el contacto**: GHL suele asignar (rotación/workflow) segundos DESPUÉS del
   ContactCreate, así que el webhook lo guardaba sin agente. Ahora `handleGhlEvent` (`capa1-base/conexiones/ghl/webhook.ts`)
   vuelve a pedirlo con `after()` a los 20 s y 50 s si llegó sin `assignedTo`, y cada mensaje entrante/saliente por webhook

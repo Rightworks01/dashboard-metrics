@@ -2,7 +2,7 @@ import { puede } from "@cuentas/roles";
 import { myAccess } from "@cuentas/auth";
 import { logError } from "@base/conexiones/log";
 import { buildFollowupReport } from "@base/datos/followup";
-import { resolveCampaignScope, resolveRange } from "@base/datos/metrics";
+import { getCampaigns, resolveCampaignScope, resolveRange } from "@base/datos/metrics";
 import { APPOINTMENT_PHASE_LABEL } from "@base/util/appointments";
 
 export const runtime = "nodejs";
@@ -24,8 +24,11 @@ export async function GET(req: Request) {
   const { from, to } = await resolveRange(sp.get("from") ?? undefined, sp.get("to") ?? undefined);
   const scope = await resolveCampaignScope(sp.get("camp") ?? undefined);
   try {
-    const r = await buildFollowupReport(from, to, scope.ids);
-    const rows: string[] = [line("Reporte de seguimiento Right Works", `${from} a ${to}`)];
+    const names = new Map((await getCampaigns()).map((c) => [c.id, c.name]));
+    const campaignNames = scope.mode === "todas" ? [] : scope.ids.filter((id) => id !== "0").map((id) => names.get(id) ?? `Campaña ${id}`);
+    const r = await buildFollowupReport(from, to, scope.ids, campaignNames);
+    const rows: string[] = [line("Reporte de seguimiento Right Works", `${from} a ${to}`),
+      line(campaignNames.length === 1 ? "Campaña" : "Campañas", campaignNames.length ? campaignNames.join(" · ") : "Todas las campañas de la cuenta")];
     for (const s of r.summary) rows.push(line("", s));
     for (const n of r.notes) rows.push(line("Aviso", n));
     const head = ["Leads", "Con contacto humano", "1er contacto mediana (min)", "Contactados ≤5 min", "Sin contacto", "Sin contacto +24h", "Respondieron",
