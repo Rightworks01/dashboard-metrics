@@ -11,16 +11,17 @@ import { TimeZonePicker } from "@visual/componentes/timezone-picker";
 // Solo lo visual del menú (orden, nombres, íconos). QUIÉN ve cada sección lo decide la Capa 3
 // (capa3-cuentas/roles.ts): el layout pasa `allowed` con las claves permitidas.
 // `perm` = clave de permiso si es distinta de `key` (dos entradas pueden compartir un permiso).
-type Item = { key: string; perm?: string; href: string; label: string; icon: string; soon?: boolean };
+// `tone` = color del ícono (las pestañas de Leads usan el color de su línea, como en los filtros).
+type Item = { key: string; perm?: string; href: string; label: string; icon: string; tone?: string; soon?: boolean };
 
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Rendimiento",
     items: [
       { key: "resumen", href: "/", label: "Resumen", icon: "M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z" },
-      { key: "leads-vida", perm: "leads", href: "/leads/vida", label: "Leads Vida", icon: "M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6m0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13m8 0-.9.1A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.3-4.7-3.5-7-3.5" },
-      { key: "leads-comercial", perm: "leads", href: "/leads/comercial", label: "Leads Comercial/Casas", icon: "M12 3 2 12h3v8h6v-6h2v6h6v-8h3z" },
-      { key: "leads-reclutamiento", perm: "leads", href: "/leads/reclutamiento", label: "Leads Reclutamiento", icon: "M15 12c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4m-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4" },
+      { key: "leads-vida", perm: "leads", href: "/leads/vida", label: "Leads Vida", icon: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z", tone: "text-series-1" },
+      { key: "leads-comercial", perm: "leads", href: "/leads/comercial", label: "Leads Comercial/Casas", icon: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z", tone: "text-series-3" },
+      { key: "leads-reclutamiento", perm: "leads", href: "/leads/reclutamiento", label: "Leads Reclutamiento", icon: "M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4", tone: "text-series-2" },
       { key: "campanas", href: "/campanas", label: "Campañas", icon: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12m0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6" },
       { key: "publicar", href: "/publicar", label: "Publicar", icon: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" },
       { key: "anuncios", href: "/anuncios", label: "Anuncios", icon: "M3 11v2h3l5 4V7L6 11zm13.5 1A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4M14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6" },
@@ -43,9 +44,9 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   },
 ];
 
-function Icon({ d }: { d: string }) {
+function Icon({ d, tone }: { d: string; tone?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 shrink-0 fill-current">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={`size-4 shrink-0 fill-current ${tone ?? ""}`}>
       <path d={d} />
     </svg>
   );
@@ -111,7 +112,7 @@ export function Sidebar({ email, allowed, tools, signOut }: {
                   className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                     active ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                   }`}>
-                  <Icon d={item.icon} />
+                  <Icon d={item.icon} tone={item.tone} />
                   {item.label}
                 </Link>
               );
