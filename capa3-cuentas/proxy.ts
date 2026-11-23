@@ -58,6 +58,8 @@ export async function sessionProxy(request: NextRequest) {
     return response;
   }
 
+  // /sso (entrada automática desde la app de GHL) siempre se sirve: con o sin sesión, porque puede cambiar de usuario
+  if (path === "/sso") return response;
   const isLogin = path.startsWith("/login");
   if (!signedIn && !isLogin) {
     const url = request.nextUrl.clone();

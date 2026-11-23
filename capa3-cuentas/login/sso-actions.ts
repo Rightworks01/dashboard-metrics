@@ -65,3 +65,8 @@ export async function ssoSignIn(payload: string): Promise<{ error: string }> {
   }
   redirect("/");
 }
+
+/** Diagnóstico: /sso se abrió dentro de un iframe pero GHL no mandó el usuario (no es la página de la app). */
+export async function ssoNoAnswer(): Promise<void> {
+  logInfo("auth.sso.no_answer", {});
+}

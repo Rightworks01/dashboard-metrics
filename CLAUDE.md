@@ -210,7 +210,10 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   Action `ssoSignIn` (`capa3-cuentas/login/sso-actions.ts`): exige `activeLocation` = `GHL_LOCATION_ID`, crea la cuenta si no
   existe y aplica en CADA entrada: Admin de GHL → Administrador; User de GHL → Agente (`agent_id` = su ID de GHL). Nunca
   le quita el admin a quien ya es Administrador del dashboard. Sesión vía `generateLink` (magiclink, sin email) +
-  `verifyOtp` en el servidor. Si GHL no responde (p. ej. el widget IFrame de un Dashboard), queda el login normal.
+  `verifyOtp` en el servidor. La página de la app debe ser **`/sso`** (`app/sso/page.tsx` + `sso-gate.tsx`; pública en
+  `proxy.ts`): SIEMPRE pide el usuario a GHL, aunque ya haya otra sesión, y cambia de usuario si hace falta; si GHL no
+  responde en 5 s, registra `auth.sso.no_answer` y sigue con la sesión que había o va a `/login`. En `/login` (sin sesión)
+  también se intenta (`ghl-sso.tsx`). El widget IFrame de un Dashboard de GHL no entrega el usuario.
 - **Publicar dentro de GHL** (Custom Menu Link en modo iframe, SOLO la subcuenta de Right Works): URL
   `https://dashboard.rightworksinsurance.com/embed/publicar?location={{location.id}}`. Cuatro medidas (`capa3-cuentas/embed.ts`):
   1) `checkEmbed`: Sec-Fetch-Dest `iframe` con Referer en `ALLOWED_PARENT_ORIGINS` (app.rightworksinsurance.com y app.gohighlevel.com) (o el propio dashboard tras el login),
