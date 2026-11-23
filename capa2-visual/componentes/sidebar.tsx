@@ -10,14 +10,16 @@ import { TimeZonePicker } from "@visual/componentes/timezone-picker";
 
 // Solo lo visual del menú (orden, nombres, íconos). QUIÉN ve cada sección lo decide la Capa 3
 // (capa3-cuentas/roles.ts): el layout pasa `allowed` con las claves permitidas.
-type Item = { key: string; href: string; label: string; icon: string; soon?: boolean };
+// `perm` = clave de permiso si es distinta de `key` (dos entradas pueden compartir un permiso).
+type Item = { key: string; perm?: string; href: string; label: string; icon: string; soon?: boolean };
 
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: "Rendimiento",
     items: [
       { key: "resumen", href: "/", label: "Resumen", icon: "M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z" },
-      { key: "leads", href: "/leads", label: "Leads", icon: "M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6m0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13m8 0-.9.1A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.3-4.7-3.5-7-3.5" },
+      { key: "leads-insurance", perm: "leads", href: "/leads/insurance", label: "Leads Insurance", icon: "M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6m0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13m8 0-.9.1A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.3-4.7-3.5-7-3.5" },
+      { key: "leads-reclutamiento", perm: "leads", href: "/leads/reclutamiento", label: "Leads Reclutamiento", icon: "M15 12c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4m-9-2V7H4v3H1v2h3v3h2v-3h3v-2zm9 4c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4" },
       { key: "campanas", href: "/campanas", label: "Campañas", icon: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12m0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6" },
       { key: "publicar", href: "/publicar", label: "Publicar", icon: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" },
       { key: "anuncios", href: "/anuncios", label: "Anuncios", icon: "M3 11v2h3l5 4V7L6 11zm13.5 1A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4M14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6" },
@@ -87,7 +89,7 @@ export function Sidebar({ email, allowed, tools, signOut }: {
       </div>
 
       <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-1 md:flex-col md:gap-5 md:overflow-visible md:px-3 md:pb-0">
-        {SECTIONS.map((section) => ({ ...section, items: section.items.filter((item) => allowed.includes(item.key)) }))
+        {SECTIONS.map((section) => ({ ...section, items: section.items.filter((item) => allowed.includes(item.perm ?? item.key)) }))
           .filter((section) => section.items.length > 0).map((section) => (
           <div key={section.title} className="flex gap-1 md:flex-col">
             <p className="hidden px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-3 md:block">{section.title}</p>

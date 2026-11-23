@@ -238,6 +238,12 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   upsert) lo pasa a `automated = true`, `origin = 'manual_resend'` cuando sus primeros 40 caracteres coinciden con un
   automático que ese lead recibió antes. No cuenta como contacto humano; el reporte de seguimiento lo avisa
   (`manual_resends` en `followup_lead_activity`).
+- **Leads separado por línea** (`capa1-base/util/lineas.ts`, `campaignLine`): campaña con "reclutamiento" en el nombre
+  (sin importar mayúsculas/tildes) = Reclutamiento; el resto (y sin campaña) = Insurance. Menú: "Leads Insurance"
+  (`/leads/insurance`) y "Leads Reclutamiento" (`/leads/reclutamiento`), ruta `app/(dashboard)/leads/[linea]/`; la vista
+  compartida es `leads/leads-view.tsx` (`LeadsView`, filtra leads, opciones de campañas y próximas citas por línea).
+  `/leads` = todas las líneas (destino de los enlaces de reportes/Resumen); selector Insurance | Reclutamiento | Todos
+  arriba de la lista. En el menú las dos entradas comparten el permiso `leads` (`perm` en `sidebar.tsx`).
 - Los dos reportes muestran en el encabezado (y en el CSV) los NOMBRES de las campañas filtradas (vacío = todas).
 - **Agente asignado después de crear el contacto**: GHL suele asignar (rotación/workflow) segundos DESPUÉS del
   ContactCreate, así que el webhook lo guardaba sin agente. Ahora `handleGhlEvent` (`capa1-base/conexiones/ghl/webhook.ts`)

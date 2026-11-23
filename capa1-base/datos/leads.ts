@@ -208,7 +208,7 @@ const upcomingRow = z.object({
 
 export type UpcomingAppointment = {
   start: string; status: string | null; contactId: string; name: string | null; leadCreatedAt: string;
-  stateCode: string | null; agentId: string | null; agentName: string | null;
+  stateCode: string | null; agentId: string | null; agentName: string | null; campaignId: string | null;
 };
 
 /**
@@ -245,7 +245,7 @@ export async function getUpcomingAppointments(opts: { campaigns: string[]; agent
       return {
         start: r.start_time, status: r.status, contactId: r.contact.id, name: r.contact.name,
         leadCreatedAt: r.contact.created_at, stateCode: r.contact.state ? toStateCode(r.contact.state) : null,
-        agentId, agentName: agentId ? (names.get(agentId) ?? null) : null,
+        agentId, agentName: agentId ? (names.get(agentId) ?? null) : null, campaignId: r.contact.meta_campaign_id,
       };
     })
     .filter((a) => !opts.agent || (opts.agent === "sin" ? !a.agentId : a.agentId === opts.agent));
