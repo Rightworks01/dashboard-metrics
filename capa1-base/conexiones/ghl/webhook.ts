@@ -1,5 +1,7 @@
+import { after } from "next/server";
 import { z } from "zod";
-import { fetchContact, upsertContacts, ensureContacts } from "@base/conexiones/ghl/contacts";
+import { logError, logInfo } from "@base/conexiones/log";
+import { fetchContact, upsertContacts, ensureContacts, refreshIfUnassigned } from "@base/conexiones/ghl/contacts";
 import { listConversationsForContact, syncConversation } from "@base/conexiones/ghl/conversations";
 import { fetchOpportunity, upsertOpportunities } from "@base/conexiones/ghl/opportunities";
 import { syncAppointment } from "@base/conexiones/ghl/appointments";
@@ -23,12 +25,36 @@ export type GhlWebhookEvent = z.infer<typeof ghlWebhookSchema>;
 
 export type WebhookResult = { handled: boolean; detail?: string };
 
+// Contacto nuevo sin agente: se vuelve a preguntar a GHL tras la respuesta (after), a los 20 s y a los 50 s
+// (la ruta tiene maxDuration 60). Si sigue sin agente, la reconciliación diaria lo corrige.
+const ASSIGNMENT_RECHECKS_MS = [20_000, 30_000];
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function recheckAssignmentLater(ghlId: string) {
+  after(async () => {
+    for (const wait of ASSIGNMENT_RECHECKS_MS) {
+      await sleep(wait);
+      try {
+        if (await refreshIfUnassigned(ghlId)) {
+          logInfo("webhook.ghl.assigned_later", { contactId: ghlId });
+          return;
+        }
+      } catch (error) {
+        logError("webhook.ghl.assigned_later", error, { contactId: ghlId });
+        return;
+      }
+    }
+  });
+}
+
 export async function handleGhlEvent(event: GhlWebhookEvent): Promise<WebhookResult> {
   if (event.type.startsWith("Contact") && event.type !== "ContactDelete") {
     const contactId = event.id ?? event.contactId;
     if (!contactId) return { handled: false, detail: "evento de contacto sin id" };
-    await upsertContacts([await fetchContact(contactId)]);
-    return { handled: true };
+    const contact = await fetchContact(contactId);
+    await upsertContacts([contact]);
+    if (!contact.assignedTo) recheckAssignmentLater(contactId);
+    return { handled: true, ...(contact.assignedTo ? {} : { detail: "sin agente todavía: se vuelve a revisar en segundos" }) };
   }
 
   if (event.type.startsWith("Opportunity") && event.type !== "OpportunityDelete") {
@@ -52,6 +78,8 @@ export async function handleGhlEvent(event: GhlWebhookEvent): Promise<WebhookRes
       ? [{ id: event.conversationId, contactId: event.contactId, lastMessageType: event.messageType }]
       : await listConversationsForContact(event.contactId);
     for (const conversation of conversations) await syncConversation(conversation, contactUuid);
+    // De paso, si el contacto quedó sin agente al crearse, se corrige ahora
+    await refreshIfUnassigned(event.contactId).catch((error) => logError("webhook.ghl.refresh_assignment", error, { contactId: event.contactId }));
     return { handled: true };
   }
 

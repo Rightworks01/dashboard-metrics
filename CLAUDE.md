@@ -233,6 +233,10 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   por `GHL_STATE_CUSTOM_FIELD_ID` (uno o varios, por coma) o resueltos por nombre; requiere scope
   `locations/customFields.readonly`. `contacts.geo_synced_at` null = pendiente: `reconcile-ghl` hace un barrido
   completo de contactos mientras haya pendientes (migración `contact_geo_synced`).
+- **Agente asignado después de crear el contacto**: GHL suele asignar (rotación/workflow) segundos DESPUÉS del
+  ContactCreate, así que el webhook lo guardaba sin agente. Ahora `handleGhlEvent` (`capa1-base/conexiones/ghl/webhook.ts`)
+  vuelve a pedirlo con `after()` a los 20 s y 50 s si llegó sin `assignedTo`, y cada mensaje entrante/saliente por webhook
+  llama a `refreshIfUnassigned` (`contacts.ts`). Respaldo: la reconciliación diaria.
 - Migración `crm_enrichment`: `messages` con `kind` (canal por mensaje), `sender_user_id` (agente),
   `automated` (workflow/bulk/campaign o saliente sin userId), `origin`, `call_status`,
   `call_duration_s` y `meta` (crudo, solo llamadas). `contacts.name`. Tablas `crm_users` (id → nombre,

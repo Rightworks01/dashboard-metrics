@@ -209,6 +209,21 @@ export async function ensureContacts(ghlIds: string[]): Promise<Map<string, stri
   return map;
 }
 
+/**
+ * Si el contacto está guardado sin agente, lo vuelve a pedir a GHL. La rotación/workflow de GHL suele
+ * asignar el agente unos segundos DESPUÉS de crear el contacto (y el webhook ContactCreate ya pasó).
+ * Devuelve true si ahora tiene agente.
+ */
+export async function refreshIfUnassigned(ghlId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin().from("contacts").select("assigned_to").eq("id_ghl", ghlId).maybeSingle();
+  if (error) throw new Error(`select contacts.assigned_to: ${error.message}`);
+  if (!data || data.assigned_to) return !!data?.assigned_to;
+  const contact = await fetchContact(ghlId);
+  if (!contact.assignedTo) return false;
+  await upsertContacts([contact]);
+  return true;
+}
+
 /** true si hay contactos que aún no pasaron por la sincronización de estado. */
 export async function hasContactsWithoutGeo(): Promise<boolean> {
   const { count, error } = await supabaseAdmin()
