@@ -12,8 +12,8 @@ const ERRORS: Record<string, string> = {
 
 export const metadata = { title: "Entrar · Right Works" };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; ghl?: string }> }) {
+  const { error, ghl } = await searchParams;
   const message = error ? (ERRORS[error] ?? ERRORS.credentials) : null;
 
   return (
@@ -40,7 +40,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <button type="submit" className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90">
           Entrar
         </button>
-        <InFrameNote />
+        <InFrameNote fromGhl={ghl === "1"} />
       </form>
     </main>
   );

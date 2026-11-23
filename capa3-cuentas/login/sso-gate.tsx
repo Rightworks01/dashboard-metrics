@@ -15,7 +15,7 @@ export function SsoGate({ hasSession }: { hasSession: boolean }) {
 
   useEffect(() => {
     let done = false;
-    const fallback = () => { if (!done) { done = true; window.location.replace(hasSession ? "/" : "/login"); } };
+    const fallback = () => { if (!done) { done = true; window.location.replace(hasSession ? "/" : "/login?ghl=1"); } };
     const onMessage = async (e: MessageEvent) => {
       const data = e.data as { message?: string; payload?: unknown } | null;
       if (done || data?.message !== "REQUEST_USER_DATA_RESPONSE" || typeof data.payload !== "string") return;
