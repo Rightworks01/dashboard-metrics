@@ -69,6 +69,7 @@ export async function addMember(_: ActionState, form: FormData): Promise<ActionS
       agent_id: agentId,
       can_see_ads: !agentId && checked(form.get("ads")),
       is_admin: checked(form.get("admin")),
+      admin_from_ghl: false, // nombrado en Accesos: el SSO de GHL no se lo quita
     }, { onConflict: "user_id" });
     if (error) throw error;
 
@@ -92,7 +93,7 @@ export async function updateMember(_: ActionState, form: FormData): Promise<Acti
     if (userId === admin.userId && !isAdmin) return { error: "No puedes quitarte a ti mismo el rol de administrador." };
 
     const { error } = await supabaseAdmin().from("team_members")
-      .update({ agent_id: agentId, can_see_ads: !agentId && checked(form.get("ads")), is_admin: isAdmin })
+      .update({ agent_id: agentId, can_see_ads: !agentId && checked(form.get("ads")), is_admin: isAdmin, admin_from_ghl: false })
       .eq("user_id", userId);
     if (error) throw error;
 

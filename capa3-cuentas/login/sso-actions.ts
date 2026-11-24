@@ -13,8 +13,8 @@ import { findUserByEmail } from "@cuentas/access-admin";
  *   Admin en GHL → Administrador del dashboard.
  *   User en GHL  → Agente: solo sus leads asignados (agent_id = su ID de GHL); sin Campañas, Anuncios, Publicar,
  *                  inversión ni pausar/activar.
- * Excepción: a quien ya es Administrador del dashboard (nombrado en Accesos) nunca se le quita el admin por su rol de
- * GHL. Solo usuarios con la subcuenta de Right Works activa (GHL_LOCATION_ID). La primera vez se crea su cuenta.
+ * Excepción: a quien un admin nombró Administrador a mano en Accesos nunca se le quita el admin por su rol de GHL. El
+ * admin que vino de GHL (admin_from_ghl) sí se recalcula: si en GHL pasa a User, entra como Agente. Solo usuarios con la subcuenta de Right Works activa (GHL_LOCATION_ID). La primera vez se crea su cuenta.
  */
 export async function ssoSignIn(payload: string): Promise<{ error: string }> {
   const ssoKey = process.env.GHL_SSO_KEY;
@@ -42,12 +42,14 @@ export async function ssoSignIn(payload: string): Promise<{ error: string }> {
       if (error || !data.user) throw error ?? new Error("createUser sin usuario");
       user = data.user;
     }
-    const { data: current } = await db.from("team_members").select("is_admin").eq("user_id", user.id).maybeSingle();
-    const admin = isAdmin || !!current?.is_admin;
+    const { data: current } = await db.from("team_members").select("is_admin, admin_from_ghl").eq("user_id", user.id).maybeSingle();
+    const manualAdmin = !!current?.is_admin && !current.admin_from_ghl;
+    const admin = isAdmin || manualAdmin;
     const { error: memberError } = await db.from("team_members").upsert({
       user_id: user.id,
       email,
       is_admin: admin,
+      admin_from_ghl: admin && !manualAdmin,
       can_see_ads: admin,
       agent_id: admin ? null : ghlUser.userId,
     }, { onConflict: "user_id" });
@@ -58,7 +60,7 @@ export async function ssoSignIn(payload: string): Promise<{ error: string }> {
     if (linkError || !link.properties?.hashed_token) throw linkError ?? new Error("generateLink sin token");
     const { error: otpError } = await (await supabaseServer()).auth.verifyOtp({ type: "magiclink", token_hash: link.properties.hashed_token });
     if (otpError) throw otpError;
-    logInfo("auth.sso.ok", { email, ghlUserId: ghlUser.userId, role: ghlUser.role, admin });
+    logInfo("auth.sso.ok", { email, ghlUserId: ghlUser.userId, role: ghlUser.role, type: ghlUser.type ?? null, admin, manualAdmin });
   } catch (error) {
     logError("auth.sso", error, { email, ghlUserId: ghlUser.userId });
     return { error: "No se pudo iniciar sesión con tu usuario de GHL. Entra con email y contraseña." };

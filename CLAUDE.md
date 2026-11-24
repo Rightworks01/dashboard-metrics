@@ -209,7 +209,8 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   lo descifra `decryptGhlSso` (`capa1-base/conexiones/ghl/sso.ts`, AES-256-CBC formato OpenSSL/CryptoJS) en la Server
   Action `ssoSignIn` (`capa3-cuentas/login/sso-actions.ts`): exige `activeLocation` = `GHL_LOCATION_ID`, crea la cuenta si no
   existe y aplica en CADA entrada: Admin de GHL → Administrador; User de GHL → Agente (`agent_id` = su ID de GHL). Nunca
-  le quita el admin a quien ya es Administrador del dashboard. Sesión vía `generateLink` (magiclink, sin email) +
+  le quita el admin a quien un admin nombró a mano en Accesos; el admin que vino de GHL (`team_members.admin_from_ghl`,
+  migración `admin_from_ghl`) se recalcula en cada entrada (si en GHL pasa a User, entra como Agente). Sesión vía `generateLink` (magiclink, sin email) +
   `verifyOtp` en el servidor. La página de la app debe ser **`/sso`** (`app/sso/page.tsx` + `sso-gate.tsx`; pública en
   `proxy.ts`): SIEMPRE pide el usuario a GHL, aunque ya haya otra sesión, y cambia de usuario si hace falta; si GHL no
   responde en 5 s, registra `auth.sso.no_answer` y sigue con la sesión que había o va a `/login`. En `/login` (sin sesión)
