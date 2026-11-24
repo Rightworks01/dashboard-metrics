@@ -24,7 +24,12 @@ export function GhlSso() {
       setMessage(res.error);
     };
     window.addEventListener("message", onMessage);
-    window.parent.postMessage({ message: "REQUEST_USER_DATA" }, "*");
+    {
+      // A la ventana de GHL que contiene la página (y a la principal, por si hay un recuadro intermedio)
+      const ask = { message: "REQUEST_USER_DATA" };
+      window.parent.postMessage(ask, "*");
+      if (window.top && window.top !== window.parent) window.top.postMessage(ask, "*");
+    }
     return () => window.removeEventListener("message", onMessage);
   }, []);
 

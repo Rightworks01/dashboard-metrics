@@ -25,7 +25,12 @@ export function SsoGate({ hasSession }: { hasSession: boolean }) {
     };
     window.addEventListener("message", onMessage);
     if (window.self === window.top) fallback();
-    else window.parent.postMessage({ message: "REQUEST_USER_DATA" }, "*");
+    else {
+      // A la ventana de GHL que contiene la página (y a la principal, por si hay un recuadro intermedio)
+      const ask = { message: "REQUEST_USER_DATA" };
+      window.parent.postMessage(ask, "*");
+      if (window.top && window.top !== window.parent) window.top.postMessage(ask, "*");
+    }
     const timer = setTimeout(() => { if (!done) void ssoNoAnswer().finally(fallback); }, WAIT_MS);
     return () => { window.removeEventListener("message", onMessage); clearTimeout(timer); };
   }, [hasSession]);
