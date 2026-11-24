@@ -250,3 +250,14 @@ export async function getUpcomingAppointments(opts: { campaigns: string[]; agent
     })
     .filter((a) => !opts.agent || (opts.agent === "sin" ? !a.agentId : a.agentId === opts.agent));
 }
+
+/** Nombre de un usuario de GHL (crm_users), o null si no está. Para títulos cuando el agente no tiene leads en el rango. */
+export async function getAgentName(agentId: string): Promise<string | null> {
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.from("crm_users").select("name").eq("id", agentId).maybeSingle();
+  if (error) {
+    logError("leads.agent_name", error, { agentId });
+    return null;
+  }
+  return data?.name ?? null;
+}

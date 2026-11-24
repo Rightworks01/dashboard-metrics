@@ -7,7 +7,7 @@ import { FilterSelect, type FilterOption } from "@visual/componentes/filter-sele
 import { Card, ErrorNote, Kpi, PageHeader } from "@visual/componentes/ui";
 import { fmtDuration, fmtInt } from "@base/util/format";
 import {
-  countLeads, defaultLeadSort, filterLeads, firstContactMs, getContactInfo, getLeads, getUpcomingAppointments, getLeadTimeline, LEAD_FILTERS, parseLeadFilter, parseLeadSort, sortLeads,
+  countLeads, defaultLeadSort, filterLeads, firstContactMs, getAgentName, getContactInfo, getLeads, getUpcomingAppointments, getLeadTimeline, LEAD_FILTERS, parseLeadFilter, parseLeadSort, sortLeads,
   type LeadFilter,
 } from "@base/datos/leads";
 import { agentScope, myAccess } from "@cuentas/auth";
@@ -139,7 +139,7 @@ export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSe
     const delays = all.map(firstContactMs).filter((d): d is number => d != null).sort((a, b) => a - b);
     const median = delays.length ? delays[Math.floor(delays.length / 2)] : null;
     const agentName = agent === "sin" ? "sin agente asignado"
-      : agent ? (inRange.find((l) => l.assigned_to === agent)?.agent_name ?? agent) : null;
+      : agent ? (inRange.find((l) => l.assigned_to === agent)?.agent_name ?? (await getAgentName(agent)) ?? "este agente") : null;
     // Qué recorte se está viendo, en palabras (para el título, el aviso y las tarjetas)
     const stateName = state === "sin" ? "sin estado" : state ? US_STATES[state] : null;
     const scopeParts = [stateName, agentName, ad && `anuncio ${ad}`].filter((x): x is string => !!x);

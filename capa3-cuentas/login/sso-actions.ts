@@ -55,6 +55,13 @@ export async function ssoSignIn(payload: string): Promise<{ error: string }> {
     }, { onConflict: "user_id" });
     if (memberError) throw memberError;
 
+    // Su nombre para el dashboard: los usuarios de agencia no salen en /users/ de la subcuenta (crm_users)
+    const name = ghlUser.userName?.trim();
+    if (name) {
+      const { error: nameError } = await db.from("crm_users").upsert({ id: ghlUser.userId, name, synced_at: new Date().toISOString() }, { onConflict: "id" });
+      if (nameError) logError("auth.sso.user_name", nameError, { ghlUserId: ghlUser.userId });
+    }
+
     // Sesión sin contraseña: enlace mágico generado en el servidor (no se envía email) y canjeado aquí mismo
     const { data: link, error: linkError } = await db.auth.admin.generateLink({ type: "magiclink", email });
     if (linkError || !link.properties?.hashed_token) throw linkError ?? new Error("generateLink sin token");
