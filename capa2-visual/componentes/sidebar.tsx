@@ -68,7 +68,11 @@ export function Sidebar({ email, allowed, tools, signOut }: {
 }) {
   const pathname = usePathname();
   const query = useSearchParams().toString();
+  // Las pestañas de Leads por línea tienen su propio rango y campañas por defecto (desde que arrancó la
+  // campaña): ni reciben el rango de otra sección ni se lo pasan a las demás.
+  const isLine = (p: string) => p.startsWith("/leads/");
   const withRange = (href: string) => {
+    if (isLine(href) || isLine(pathname)) return href;
     const params = new URLSearchParams(query);
     params.delete("sort"); // el orden de la tabla de anuncios no aplica a otras secciones
     params.delete("dir");

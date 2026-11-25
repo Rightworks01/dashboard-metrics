@@ -14,15 +14,19 @@ type WithStart = { start_time?: string | null; created_time?: string | null; fir
 const AGE_ZONE = "America/Los_Angeles";
 const ymdIn = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone: AGE_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(t);
 
-/** Día de campaña (1 = arrancó hoy, 2 = ayer…) en el calendario de AGE_ZONE; null si no se sabe. */
-export function campaignAgeDays(c: WithStart | null | undefined, now = Date.now()): number | null {
-  let startDay: string | null = null;
+/** Día (AAAA-MM-DD, calendario de AGE_ZONE) en que arrancó la campaña; null si no se sabe. */
+export function campaignStartDay(c: WithStart | null | undefined): string | null {
   const ts = c?.start_time ?? c?.created_time;
   if (ts) {
     const t = Date.parse(ts);
-    if (!Number.isNaN(t)) startDay = ymdIn(t);
+    if (!Number.isNaN(t)) return ymdIn(t);
   }
-  startDay ??= c?.first_spend_date ?? null;
+  return c?.first_spend_date ?? null;
+}
+
+/** Día de campaña (1 = arrancó hoy, 2 = ayer…) en el calendario de AGE_ZONE; null si no se sabe. */
+export function campaignAgeDays(c: WithStart | null | undefined, now = Date.now()): number | null {
+  const startDay = campaignStartDay(c);
   if (!startDay) return null;
   const diff = Math.round((Date.parse(`${ymdIn(now)}T00:00:00Z`) - Date.parse(`${startDay}T00:00:00Z`)) / 86_400_000);
   return Math.max(1, diff + 1);

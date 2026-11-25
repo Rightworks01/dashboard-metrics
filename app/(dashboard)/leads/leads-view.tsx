@@ -18,6 +18,7 @@ import { getCampaignOptions, getCampaigns, resolveCampaignScope, resolveRange } 
 import { LINEAS, resolveLine, type Linea } from "@base/util/lineas";
 import { getFixedLines } from "@base/datos/campaign-lines";
 import { US_STATES } from "@base/util/us-states";
+import { campaignStartDay } from "@base/util/campaign-age";
 
 export type LeadsSearchParams = Promise<{
   from?: string; to?: string; camp?: string; etapa?: string; anuncio?: string; agente?: string; estado?: string; sort?: string; dir?: string;
@@ -59,8 +60,27 @@ export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSe
   const pageTitle = linea ? LINEAS[linea].label : "Leads";
   const scopeAgent = await agentScope(); // Capa 3: null = la cuenta ve todo
   const params = await searchParams;
-  const { from, to } = await resolveRange(params.from, params.to);
-  const campScope = await resolveCampaignScope(params.camp);
+  // Pestaña de una línea, sin ?camp: TODAS las campañas de esa línea (activas y pausadas), no solo las activas.
+  // Sin ?from: desde el día en que arrancó la más antigua de las campañas que se ven, hasta hoy.
+  let campScope = await resolveCampaignScope(params.camp);
+  let lineStart: string | undefined;
+  if (linea) {
+    try {
+      const [cat, fixed] = await Promise.all([getCampaigns(), getFixedLines()]);
+      if (!params.camp) {
+        const ids = cat.filter((c) => resolveLine(c.name, fixed.get(c.id)).line === linea).map((c) => c.id);
+        campScope = { mode: "custom", ids: ids.length ? ids : campScope.ids };
+      }
+      if (campScope.ids.length) {
+        const shown = new Set(campScope.ids);
+        lineStart = cat.filter((c) => shown.has(c.id)).map(campaignStartDay).filter((d): d is string => !!d).sort()[0];
+      }
+    } catch (error) {
+      logError("leads.lineDefaults", error, { linea }); // sin catálogo: valores por defecto generales
+    }
+  }
+  const { from, to } = await resolveRange(params.from ?? lineStart, params.to);
+  const sinceStart = !!linea && !params.from && !!lineStart;
   const camps = campScope.ids;
   const filter = parseLeadFilter(params.etapa);
   const ad = isId(params.anuncio);
@@ -157,7 +177,7 @@ export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSe
     return (
       <div className="space-y-5">
         <PageHeader title={scoped ? `${pageTitle} · ${scope}` : pageTitle} from={from} to={to} path={basePath} scope={campScope} options={options}
-          description={linea ? `campañas de la línea ${LINEAS[linea].short}` : "todas las líneas, también campañas sin línea"} />
+          description={linea ? `campañas de la línea ${LINEAS[linea].short}${sinceStart ? ", desde que arrancó la primera" : ""}` : "todas las líneas, también campañas sin línea"} />
 
         {unlinedActive.length > 0 && <UnlinedCampaignsNote names={unlinedActive} where="leads" />}
 
@@ -168,7 +188,7 @@ export async function LeadsView({ searchParams, linea }: { searchParams: LeadsSe
               <span aria-hidden="true" className="mr-1.5">🔎</span>
               Estás viendo <strong>solo los leads de {scope}</strong>:{" "}
               <strong className="tabular-nums">{fmtInt(all.length)}</strong> de {fmtInt(inRange.length)} leads de este rango
-              {campScope.mode === "activas" ? " de las campañas activas" : campScope.mode === "custom" ? " de la campaña elegida" : ""}. Todas las cifras de esta página son de esa selección.
+              {campScope.mode === "activas" ? " de las campañas activas" : campScope.mode === "custom" && params.camp ? " de la campaña elegida" : ""}. Todas las cifras de esta página son de esa selección.
             </p>
             <Link href={href({ estado: null, agente: null, anuncio: null })}
               className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">

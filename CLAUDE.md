@@ -268,6 +268,9 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   columna "Línea" en Campañas (`line-select.tsx`), bloque "Sin línea" con "Asignar a" en el filtro de campañas del
   Resumen (`lineAssign` en `PageHeader`/`CampaignFilter`) y aviso `UnlinedCampaignsNote` (Resumen, Campañas y pestañas de
   Leads) si hay campañas activas sin línea. Las pestañas no llevan selector de línea (el menú ya las separa).
+  Valores por defecto de las pestañas por línea (distintos del resto): sin `?camp` = TODAS las campañas de la línea (activas y
+  pausadas); sin `?from` = desde el día en que arrancó la más antigua de las campañas que se ven (`campaignStartDay`) hasta
+  hoy. El menú no pasa `?from&to&camp` hacia ni desde `/leads/<línea>` (`sidebar.tsx`).
 - Los dos reportes muestran en el encabezado (y en el CSV) los NOMBRES de las campañas filtradas (vacío = todas).
 - **Agente asignado después de crear el contacto**: GHL suele asignar (rotación/workflow) segundos DESPUÉS del
   ContactCreate, así que el webhook lo guardaba sin agente. Ahora `handleGhlEvent` (`capa1-base/conexiones/ghl/webhook.ts`)
