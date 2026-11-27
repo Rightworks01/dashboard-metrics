@@ -47,6 +47,11 @@ function metaAttribution(contact: GhlContact): Row {
   };
 }
 
+/** true si el contacto vino de un anuncio de Meta (los importados y los manuales no). */
+export function isMetaLead(contact: GhlContact): boolean {
+  return metaAttribution(contact).meta_ad_id !== null;
+}
+
 // Custom fields de estado. Right Works lo guarda en {{contact.estado}}; "states" y "state" quedan como
 // respaldo. GHL manda los custom fields como [{ id, value }]: los IDs salen de
 // GHL_STATE_CUSTOM_FIELD_ID (uno o varios, separados por coma) o se buscan por nombre
@@ -212,12 +217,18 @@ export async function ensureContacts(ghlIds: string[]): Promise<Map<string, stri
 /**
  * Si el contacto está guardado sin agente, lo vuelve a pedir a GHL. La rotación/workflow de GHL suele
  * asignar el agente unos segundos DESPUÉS de crear el contacto (y el webhook ContactCreate ya pasó).
+ * Solo para leads de Meta: los importados o manuales no pasan por la rotación (no se le pregunta a GHL).
  * Devuelve true si ahora tiene agente.
  */
 export async function refreshIfUnassigned(ghlId: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin().from("contacts").select("assigned_to").eq("id_ghl", ghlId).maybeSingle();
+  const { data, error } = await supabaseAdmin()
+    .from("contacts")
+    .select("assigned_to, meta_ad_id")
+    .eq("id_ghl", ghlId)
+    .maybeSingle();
   if (error) throw new Error(`select contacts.assigned_to: ${error.message}`);
   if (!data || data.assigned_to) return !!data?.assigned_to;
+  if (!data.meta_ad_id) return false;
   const contact = await fetchContact(ghlId);
   if (!contact.assignedTo) return false;
   await upsertContacts([contact]);
