@@ -30,9 +30,7 @@ lo que NO está ahí: dónde vive cada cosa, reglas de trabajo y lo que quedó a
 3. **Publicar: probado contra Meta el 2026-11-28, funciona.** Al principio el creativo fallaba (error 1885183: app
    "RIGTH WORKS" `1651265526505271` en modo de desarrollo); la dueña la pasó a modo Activo y ya se crean formularios,
    campaña, conjunto y anuncios con varias opciones de texto (`asset_feed_spec` + DEGREES_OF_FREEDOM: Meta mueve el texto
-   y el título de `link_data` a las variantes, es lo normal) y también con un solo texto. Queda por limpiar: la campaña
-   "PRUEBA – borrar (Claude)" `120257071195160670` (en pausa, sin gasto) y archivar el formulario
-   "PRUEBA – no usar (Claude)" `1739922991138774` de la página RightWorks `1328978853641918`. Sin probar: video. La
+   y el título de `link_data` a las variantes, es lo normal) y también con un solo texto. La campaña y el formulario de prueba ya se borraron/archivaron. Sin probar: video. La
    página RightWorks no tiene Instagram conectado (o RightWorksSync no lo ve): afecta a Publicar en Instagram y al
    pendiente 1.
 4. **SSO**: funciona desde la app del menú lateral (`auth.sso.ok` en los registros). El widget IFrame de un Dashboard
