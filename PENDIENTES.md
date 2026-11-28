@@ -27,14 +27,14 @@ lo que NO está ahí: dónde vive cada cosa, reglas de trabajo y lo que quedó a
    confirmar la cuenta de Instagram ligada a la página, y dar a RightWorksSync los permisos `pages_manage_posts`,
    `instagram_basic`, `instagram_content_publish`.
 2. **Actualización de seguridad de Next.js** 16.4.3 → 16.4.6: se le preguntó a la dueña y no respondió.
-3. **Publicar: la app de Meta está en modo de desarrollo (probado el 2026-11-28)**. Prueba directa contra Meta con el
-   mismo envío que `publish.ts`: el formulario instantáneo se crea bien (todas las partes llegan; quedó
-   "PRUEBA – no usar (Claude)", id `1739922991138774`, en la página RightWorks `1328978853641918` — archivarlo al terminar).
-   Campaña y conjunto también. El creativo falla SIEMPRE (con o sin varias opciones de texto): error 1885183 "se creó con
-   una app en modo de desarrollo; debe estar en modo público". App = "RIGTH WORKS" (`1651265526505271`). Falta: que la
-   dueña la pase a modo Activo en developers.facebook.com (pide URL de política de privacidad) y repetir la prueba de
-   las variantes (`asset_feed_spec` + DEGREES_OF_FREEDOM). La campaña de prueba se borró. La página RightWorks no tiene
-   Instagram conectado (o RightWorksSync no lo ve): afecta a Publicar en Instagram y al pendiente 1.
+3. **Publicar: probado contra Meta el 2026-11-28, funciona.** Al principio el creativo fallaba (error 1885183: app
+   "RIGTH WORKS" `1651265526505271` en modo de desarrollo); la dueña la pasó a modo Activo y ya se crean formularios,
+   campaña, conjunto y anuncios con varias opciones de texto (`asset_feed_spec` + DEGREES_OF_FREEDOM: Meta mueve el texto
+   y el título de `link_data` a las variantes, es lo normal) y también con un solo texto. Queda por limpiar: la campaña
+   "PRUEBA – borrar (Claude)" `120257071195160670` (en pausa, sin gasto) y archivar el formulario
+   "PRUEBA – no usar (Claude)" `1739922991138774` de la página RightWorks `1328978853641918`. Sin probar: video. La
+   página RightWorks no tiene Instagram conectado (o RightWorksSync no lo ve): afecta a Publicar en Instagram y al
+   pendiente 1.
 4. **SSO**: funciona desde la app del menú lateral (`auth.sso.ok` en los registros). El widget IFrame de un Dashboard
    de GHL no entrega el usuario: ahí solo login manual. Falta comprobar con una sesión real que un User de GHL ve solo
    Leads, Audiencia y Respuesta, y que su nombre sale en vez de su ID tras volver a entrar (commit `3d5154a`).
