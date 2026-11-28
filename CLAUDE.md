@@ -184,6 +184,14 @@ parámetro: `getCampaignOptions(from, to, agentId)`). 2) La 2 solo usa de la 1 t
   `creatives_bucket`) con URL firmada de `POST /api/meta/publish/upload`; el servidor los manda a Meta (imagen →
   `adimages` en base64; video → `advideos` con `file_url` firmado y espera a `ready`) y luego los borra.
   Requiere la Página asignada al usuario del sistema de Meta con control total.
+- **Publicar con aspecto de Ads Manager** (`capa2-visual/componentes/meta/`): árbol Campaña → Conjunto → Anuncio a la
+  izquierda (`MetaTree`, salta a `#campana`/`#conjunto`/`#anuncio-<key>`, ✓ o punto ámbar si falta algo), tarjetas con los
+  nombres de Meta (`MetaCard`, `LevelHeader`), barra inferior fija con "Publicar" (sigue creando todo EN PAUSA). Cada
+  anuncio lleva a la derecha `AdPreview` (Feed de Facebook / Feed de Instagram / Historias y Reels, "Ver más" a los 125
+  caracteres, flechas para recorrer las combinaciones texto × título) y el formulario nuevo `LeadFormPreview` (teléfono,
+  pantallas Introducción / Preguntas / Revisión si "Mayor intención" / Finalización). Foto de la página e Instagram:
+  `picture` y `instagram.picture` en `getPublishOptions`. Tokens `--stage`/`--on-stage` (siempre oscuros) para Historias y
+  el marco del teléfono. Solo dibujan; el estado sigue en `publish-wizard.tsx` / `lead-form-builder.tsx`.
 - **Crear formularios instantáneos** desde Publicar («+ Crear formulario nuevo», `lead-form-builder.tsx` →
   `POST /api/meta/publish/form` y `/embed/api/publish/form`, `createLeadForm` en `capa1-base/conexiones/meta/publish.ts`): campos estándar,
   preguntas propias (claves `pregunta_N`), privacidad, pantalla final, "Mayor intención". Usa el token de la página

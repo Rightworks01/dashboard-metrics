@@ -52,13 +52,16 @@ async function metaPost<T>(path: string, params: Record<string, unknown>, label 
 // ---------------------------------------------------------------------------------------------
 
 export type PublishOptions = {
-  pages: { id: string; name: string; instagram: { id: string; username: string | null } | null; forms: { id: string; name: string }[]; formsError?: string }[];
+  pages: { id: string; name: string; picture?: string | null; instagram: { id: string; username: string | null; picture?: string | null } | null; forms: { id: string; name: string }[]; formsError?: string }[];
   regions: { key: string; name: string }[];
   locales: { key: number; name: string }[];
   pagesError?: string;
 };
 
-type PageInfo = { id: string; name?: string; access_token?: string; instagram_business_account?: { id: string; username?: string } };
+type PageInfo = {
+  id: string; name?: string; access_token?: string; picture?: { data?: { url?: string } };
+  instagram_business_account?: { id: string; username?: string; profile_picture_url?: string };
+};
 
 export async function getPublishOptions(): Promise<PublishOptions> {
   const out: PublishOptions = { pages: [], regions: [], locales: [] };
@@ -79,9 +82,11 @@ export async function getPublishOptions(): Promise<PublishOptions> {
   for (const p of pages.value.data) {
     const page: PublishOptions["pages"][number] = { id: p.id, name: p.name, instagram: null, forms: [] };
     try {
-      const info = await metaGet<PageInfo>(p.id, { fields: "name,access_token,instagram_business_account{id,username}" }, "page");
+      const info = await metaGet<PageInfo>(p.id, { fields: "name,access_token,picture.type(large){url},instagram_business_account{id,username,profile_picture_url}" }, "page");
+      page.picture = info.picture?.data?.url ?? null; // para la vista previa del anuncio
       if (info.instagram_business_account) {
-        page.instagram = { id: info.instagram_business_account.id, username: info.instagram_business_account.username ?? null };
+        const ig = info.instagram_business_account;
+        page.instagram = { id: ig.id, username: ig.username ?? null, picture: ig.profile_picture_url ?? null };
       }
       if (!info.access_token) throw new Error("la página no está asignada al usuario del sistema (sin access_token de página)");
       // Los formularios se leen con el token de la página

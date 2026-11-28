@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LimitHint } from "@visual/componentes/limit-hint";
+import { LeadFormPreview } from "@visual/componentes/meta/lead-form-preview";
 
 // Límites de Meta para formularios instantáneos (los mismos que pone Ads Manager).
 const LIM = { name: 200, introTitle: 60, introText: 800, question: 80, option: 80, tyTitle: 60, tyBody: 160, tyButton: 60 };
@@ -18,8 +19,10 @@ const label = "mb-1 block text-xs font-medium text-ink-2";
 let k = 1;
 
 /** Crea un formulario instantáneo en la página elegida y lo devuelve para seleccionarlo. */
-export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
-  pageId: string; apiBase: string;
+const STANDARD_EN: Record<Std, string> = { FULL_NAME: "Full name", PHONE: "Phone number", EMAIL: "Email", STATE: "State", CITY: "City", ZIP: "Zip code" };
+
+export function LeadFormBuilder({ pageId, pageName, pageAvatar, apiBase, onCreated, onCancel }: {
+  pageId: string; pageName: string; pageAvatar?: string | null; apiBase: string;
   onCreated: (form: { id: string; name: string }) => void; onCancel: () => void;
 }) {
   const [name, setName] = useState("");
@@ -76,9 +79,10 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-accent/40 bg-accent-soft/40 p-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 rounded-lg border border-accent/40 bg-accent-soft/40 p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="min-w-0 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-ink">Nuevo formulario instantáneo</h3>
+        <h3 className="text-sm font-semibold text-ink">Crear formulario instantáneo</h3>
         <button type="button" onClick={onCancel} className="text-sm text-ink-3 hover:text-ink">Cancelar</button>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -152,6 +156,15 @@ export function LeadFormBuilder({ pageId, apiBase, onCreated, onCancel }: {
         {over && <span className="text-xs text-warning-ink">Hay textos que pasan el límite de Meta (en ámbar): puedes intentarlo, pero Meta probablemente lo rechace.</span>}
         {error && <span role="alert" className="text-sm text-critical">{error}</span>}
       </div>
+    </div>
+    <div className="lg:sticky lg:top-4 lg:self-start">
+      <LeadFormPreview pageName={pageName || "Tu página"} pageAvatar={pageAvatar} english={locale === "EN_US"} highIntent={highIntent}
+        headline={headline} description={description}
+        fields={STANDARD.filter((x) => standard.includes(x.value)).map((x) => (locale === "EN_US" ? STANDARD_EN[x.value] : x.label))}
+        questions={custom.map((c) => ({ label: c.label, options: c.options.split(",").map((o) => o.trim()).filter(Boolean) }))}
+        privacyText={locale === "EN_US" ? "Privacy policy" : "Política de privacidad"}
+        thankYou={{ title: tyTitle, body: tyBody, button: tyButton }} />
+    </div>
     </div>
   );
 }

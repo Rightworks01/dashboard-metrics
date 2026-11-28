@@ -4,13 +4,15 @@ import { useMemo, useState } from "react";
 import { supabaseBrowser } from "@base/conexiones/supabase/browser";
 import { LeadFormBuilder } from "@base/acciones/lead-form-builder";
 import { LimitHint } from "@visual/componentes/limit-hint";
+import { AdPreview } from "@visual/componentes/meta/ad-preview";
+import { Avatar, Icon, LevelHeader, MetaCard, MetaTree, type TreeItem } from "@visual/componentes/meta/meta-ui";
 
 // Lo que Meta muestra antes de cortar con "Ver más" (no rechaza textos más largos).
 const SHOWN = { message: 125, headline: 40, description: 30 };
 const MAX_VARIANTS = 5;
 
 type Options = {
-  pages: { id: string; name: string; instagram: { id: string; username: string | null } | null; forms: { id: string; name: string }[]; formsError?: string }[];
+  pages: { id: string; name: string; picture?: string | null; instagram: { id: string; username: string | null; picture?: string | null } | null; forms: { id: string; name: string }[]; formsError?: string }[];
   regions: { key: string; name: string }[];
   locales: { key: number; name: string }[];
   pagesError?: string;
@@ -41,15 +43,6 @@ const label = "mb-1 block text-xs font-medium text-ink-2";
 let nextKey = 1;
 const newAd = (n: number): Ad => ({ key: nextKey++, name: `Anuncio ${n}`, messages: [""], headlines: [""], description: "", cta: "SIGN_UP", media: null, uploading: false });
 
-function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
-  return (
-    <section className="card space-y-4 p-5">
-      <h2 className="text-sm font-semibold text-ink"><span className="mr-2 text-accent">{n}.</span>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded = false }: { options: Options; apiBase?: string; embedded?: boolean }) {
   const firstPage = options.pages[0];
   const [campaignName, setCampaignName] = useState("");
@@ -68,7 +61,8 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
   const [facebook, setFacebook] = useState(true);
   const [instagram, setInstagram] = useState(true);
   const [formId, setFormId] = useState(firstPage?.forms[0]?.id ?? "");
-  const [ads, setAds] = useState<Ad[]>([newAd(1)]);
+  // key 0 fija para el primero: el contador global difiere entre servidor y navegador (hidratación)
+  const [ads, setAds] = useState<Ad[]>(() => [{ ...newAd(1), key: 0 }]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: true; campaignId: string; adIds: string[]; managerUrl: string } | { ok: false; error: string } | null>(null);
 
@@ -165,177 +159,246 @@ export function PublishWizard({ options, apiBase = "/api/meta/publish", embedded
     );
   }
 
+  const ctaLabel = (c: Cta) => CTAS.find((x) => x.value === c)?.label ?? c;
+  const campaignDone = !!campaignName.trim();
+  const adsetDone = !!adsetName.trim() && Number(budget) >= 1 && !!pageId && !!formId && (facebook || instagram) && (allUS || regions.length > 0);
+  const tree: TreeItem[] = [
+    { id: "campana", level: 0, label: campaignName, placeholder: "Nueva campaña de clientes potenciales", done: campaignDone },
+    { id: "conjunto", level: 1, label: adsetName, placeholder: "Nuevo conjunto de anuncios", done: adsetDone },
+    ...ads.map((a): TreeItem => ({ id: `anuncio-${a.key}`, level: 2, label: a.name, placeholder: "Nuevo anuncio", done: !!a.media && a.messages.some((m) => m.trim()) })),
+  ];
+  const publishButton = (
+    <button type="button" disabled={missing.length > 0 || uploading || sending} onClick={submit}
+      className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+      {sending ? "Publicando en Meta… (puede tardar con videos)" : "Publicar"}
+    </button>
+  );
+
   return (
-    <div className="space-y-5">
-      {options.pagesError && (
-        <div role="alert" className="rounded-xl border border-critical/40 bg-critical-soft px-4 py-3 text-sm text-ink">
-          <strong className="text-critical">No se pudieron leer las páginas de Facebook.</strong> Asigna la Página al usuario del sistema
-          (Configuración del negocio → Usuarios del sistema → Asignar activos → Páginas, control total). Detalle: {options.pagesError}
-        </div>
-      )}
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
+        <MetaTree items={tree} />
+        <p className="px-1 text-xs text-ink-3">Todo se crea <strong className="text-ink-2">en pausa</strong>: no gasta hasta que lo actives.</p>
+      </aside>
 
-      <Section n={1} title="Campaña">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div><label className={label} htmlFor="cname">Nombre de la campaña</label>
-            <input id="cname" className={input} value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Reclutamiento Sin Licencia – Dic 2026" /></div>
-          <div><span className={label}>Objetivo</span><p className="py-1.5 text-sm text-ink">Clientes potenciales (formulario instantáneo)</p></div>
-        </div>
-        <fieldset>
-          <legend className={label}>Categoría especial de anuncio (obligatoria según Meta)</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {CATEGORIES.map((c) => (
-              <label key={c.value} className={`flex cursor-pointer gap-2 rounded-lg border px-3 py-2 text-sm ${category === c.value ? "border-accent bg-accent-soft" : "border-line hover:bg-surface-2"}`}>
-                <input type="radio" name="category" checked={category === c.value} onChange={() => setCategory(c.value)} className="mt-0.5" />
-                <span><span className="font-medium text-ink">{c.label}</span><span className="block text-xs text-ink-3">{c.hint}</span></span>
-              </label>
-            ))}
+      <div className="min-w-0 space-y-8">
+        {options.pagesError && (
+          <div role="alert" className="rounded-xl border border-critical/40 bg-critical-soft px-4 py-3 text-sm text-ink">
+            <strong className="text-critical">No se pudieron leer las páginas de Facebook.</strong> Asigna la Página al usuario del sistema
+            (Configuración del negocio → Usuarios del sistema → Asignar activos → Páginas, control total). Detalle: {options.pagesError}
           </div>
-        </fieldset>
-      </Section>
+        )}
 
-      <Section n={2} title="Conjunto de anuncios: presupuesto, público y formulario">
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="sm:col-span-2"><label className={label} htmlFor="aname">Nombre del conjunto</label>
-            <input id="aname" className={input} value={adsetName} onChange={(e) => setAdsetName(e.target.value)} placeholder="EE. UU. – Español" /></div>
-          <div><label className={label} htmlFor="budget">Presupuesto diario (USD)</label>
-            <input id="budget" className={`${input} tabular-nums`} inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} /></div>
-          <div />
-          <div className="sm:col-span-2"><label className={label} htmlFor="start">Inicio (vacío = al activarla)</label>
-            <input id="start" type="datetime-local" className={input} value={start} onChange={(e) => setStart(e.target.value)} /></div>
-          <div className="sm:col-span-2"><label className={label} htmlFor="end">Fin (opcional)</label>
-            <input id="end" type="datetime-local" className={input} value={end} onChange={(e) => setEnd(e.target.value)} /></div>
-        </div>
-
-        <fieldset>
-          <legend className={label}>Ubicación</legend>
-          <label className="mr-4 inline-flex items-center gap-1.5 text-sm"><input type="radio" checked={allUS} onChange={() => setAllUS(true)} /> Todo EE. UU.</label>
-          <label className="inline-flex items-center gap-1.5 text-sm"><input type="radio" checked={!allUS} onChange={() => setAllUS(false)} /> Estados específicos {regions.length ? `(${regions.length})` : ""}</label>
-          {!allUS && (
-            <div className="mt-2 rounded-lg border border-line p-2">
-              <input className={`${input} mb-2`} placeholder="Buscar estado…" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} />
-              <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto text-sm sm:grid-cols-4">
-                {visibleRegions.map((r) => (
-                  <label key={r.key} className="flex items-center gap-1.5">
-                    <input type="checkbox" checked={regions.includes(r.key)}
-                      onChange={(e) => setRegions((x) => (e.target.checked ? [...x, r.key] : x.filter((k) => k !== r.key)))} /> {r.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </fieldset>
-
-        {options.locales.length > 0 && (
-          <fieldset>
-            <legend className={label}>Idioma del público (vacío = todos)</legend>
-            <div className="flex flex-wrap gap-3 text-sm">
-              {options.locales.map((l) => (
-                <label key={l.key} className="inline-flex items-center gap-1.5">
-                  <input type="checkbox" checked={locales.includes(l.key)}
-                    onChange={(e) => setLocales((x) => (e.target.checked ? [...x, l.key] : x.filter((k) => k !== l.key)))} /> {l.name}
+        {/* ── Campaña ── */}
+        <div id="campana" className="scroll-mt-4 space-y-3">
+          <LevelHeader level={0} title={campaignName.trim() || "Nueva campaña de clientes potenciales"} />
+          <MetaCard title="Nombre de la campaña">
+            <input id="cname" aria-label="Nombre de la campaña" className={input} value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Reclutamiento Sin Licencia – Dic 2026" />
+          </MetaCard>
+          <MetaCard title="Categorías especiales de anuncios"
+            help="Declara si tus anuncios ofrecen empleo o productos financieros. Meta lo exige y limita la segmentación.">
+            <div className="grid gap-2 sm:grid-cols-3">
+              {CATEGORIES.map((c) => (
+                <label key={c.value} className={`flex cursor-pointer gap-2 rounded-lg border px-3 py-2 text-sm ${category === c.value ? "border-accent bg-accent-soft" : "border-line hover:bg-surface-2"}`}>
+                  <input type="radio" name="category" checked={category === c.value} onChange={() => setCategory(c.value)} className="mt-0.5" />
+                  <span><span className="font-medium text-ink">{c.label}</span><span className="block text-xs text-ink-3">{c.hint}</span></span>
                 </label>
               ))}
             </div>
-          </fieldset>
-        )}
-
-        {category === "NONE" ? (
-          <div className="grid max-w-xs grid-cols-2 gap-3">
-            <div><label className={label} htmlFor="amin">Edad mínima</label><input id="amin" className={input} inputMode="numeric" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} placeholder="18" /></div>
-            <div><label className={label} htmlFor="amax">Edad máxima</label><input id="amax" className={input} inputMode="numeric" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} placeholder="65" /></div>
-          </div>
-        ) : (
-          <p className="text-xs text-ink-3">Con categoría especial, Meta muestra el anuncio a mayores de 18 sin filtrar por edad ni género.</p>
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div><label className={label} htmlFor="page">Página de Facebook</label>
-            <select id="page" className={input} value={pageId} onChange={(e) => { const id = e.target.value; setPageId(id); setBuildingForm(false); setFormId((createdForms[id] ?? options.pages.find((p) => p.id === id)?.forms ?? [])[0]?.id ?? ""); }}>
-              {options.pages.length === 0 && <option value="">Sin páginas disponibles</option>}
-              {options.pages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select></div>
-          <div><label className={label} htmlFor="form">Formulario instantáneo</label>
-            <select id="form" className={input} value={formId} onChange={(e) => setFormId(e.target.value)}>
-              {!page?.forms.length && <option value="">Sin formularios activos</option>}
-              {page?.forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
-            {page?.formsError && <p className="mt-1 text-xs text-critical">No se pudieron leer los formularios: {page.formsError}</p>}
-            {pageId && !buildingForm && (
-              <button type="button" onClick={() => setBuildingForm(true)} className="mt-1 text-sm font-medium text-accent hover:underline">+ Crear formulario nuevo</button>
-            )}
-          </div>
+          </MetaCard>
+          <MetaCard title="Detalles de la campaña">
+            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt className={label}>Tipo de compra</dt><dd className="text-ink">Subasta</dd></div>
+              <div><dt className={label}>Objetivo de la campaña</dt><dd className="text-ink">Clientes potenciales</dd></div>
+            </dl>
+          </MetaCard>
         </div>
-        {buildingForm && pageId && (
-          <LeadFormBuilder pageId={pageId} apiBase={apiBase} onCancel={() => setBuildingForm(false)}
-            onCreated={(f) => {
-              setCreatedForms((x) => ({ ...x, [pageId]: [f, ...(x[pageId] ?? [])] }));
-              setFormId(f.id);
-              setBuildingForm(false);
-            }} />
-        )}
-        <fieldset className="flex flex-wrap gap-4 text-sm">
-          <legend className={label}>Dónde se muestra</legend>
-          <label className="inline-flex items-center gap-1.5"><input type="checkbox" checked={facebook} onChange={(e) => setFacebook(e.target.checked)} /> Facebook</label>
-          <label className="inline-flex items-center gap-1.5">
-            <input type="checkbox" checked={instagram && !!page?.instagram} disabled={!page?.instagram} onChange={(e) => setInstagram(e.target.checked)} />
-            Instagram {page?.instagram ? `(@${page.instagram.username ?? page.instagram.id})` : "— la página no tiene Instagram vinculado"}
-          </label>
-        </fieldset>
-      </Section>
 
-      <Section n={3} title={`Anuncios · ${ads.length}`}>
-        {ads.map((ad, i) => (
-          <div key={ad.key} className="space-y-3 rounded-lg border border-line p-4">
-            <div className="flex items-center justify-between gap-2">
-              <input className={`${input} max-w-xs font-medium`} value={ad.name} onChange={(e) => updateAd(ad.key, { name: e.target.value })} aria-label="Nombre del anuncio" />
-              {ads.length > 1 && <button type="button" onClick={() => setAds((x) => x.filter((a) => a.key !== ad.key))} className="text-sm text-ink-3 hover:text-critical">Quitar</button>}
-            </div>
-            <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
-              <div>
-                <span className={label}>Imagen o video</span>
-                <label className="flex aspect-square cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface-2 text-center text-xs text-ink-3 hover:border-accent">
-                  {ad.uploading ? "Subiendo…" : ad.media ? (
-                    ad.media.kind === "image"
-                      ? <img src={ad.media.preview} alt="" className="size-full object-cover" />
-                      : <video src={ad.media.preview} className="size-full object-cover" muted controls />
-                  ) : <span className="px-3">JPG, PNG, MP4 o MOV<br />hasta {MAX_MB} MB<br />Recomendado 1080×1080 o 1080×1350</span>}
-                  <input type="file" accept={ACCEPT} className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(ad.key, f); }} />
-                </label>
-                {ad.media && <p className="mt-1 truncate text-xs text-ink-3" title={ad.media.fileName}>{ad.media.fileName}</p>}
-                {ad.uploadError && <p className="mt-1 text-xs text-critical">{ad.uploadError}</p>}
-              </div>
-              <div className="space-y-3">
-                <Variants title="Texto principal" hint="Meta combina los textos y títulos y muestra a cada persona la versión que mejor le funciona."
-                  values={ad.messages} multiline shown={SHOWN.message} idPrefix={`msg${ad.key}`}
-                  onChange={(messages) => updateAd(ad.key, { messages })} />
-                <Variants title="Título" values={ad.headlines} shown={SHOWN.headline} idPrefix={`hl${ad.key}`}
-                  onChange={(headlines) => updateAd(ad.key, { headlines })} />
-                <div className="sm:max-w-xs"><label className={label} htmlFor={`cta${ad.key}`}>Botón</label>
-                  <select id={`cta${ad.key}`} className={input} value={ad.cta} onChange={(e) => updateAd(ad.key, { cta: e.target.value as Cta })}>
-                    {CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select></div>
-                <div><label className={label} htmlFor={`ds${ad.key}`}>Descripción (opcional)</label>
-                  <input id={`ds${ad.key}`} className={input} value={ad.description} onChange={(e) => updateAd(ad.key, { description: e.target.value })} />
-                  <LimitHint value={ad.description} limit={SHOWN.description} kind="soft" /></div>
+        {/* ── Conjunto de anuncios ── */}
+        <div id="conjunto" className="scroll-mt-4 space-y-3">
+          <LevelHeader level={1} title={adsetName.trim() || "Nuevo conjunto de anuncios"} />
+          <MetaCard title="Nombre del conjunto de anuncios">
+            <input id="aname" aria-label="Nombre del conjunto de anuncios" className={input} value={adsetName} onChange={(e) => setAdsetName(e.target.value)} placeholder="EE. UU. – Español" />
+          </MetaCard>
+
+          <MetaCard title="Ubicación de la conversión" help="Formularios instantáneos: la persona deja sus datos sin salir de Facebook o Instagram.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label className={label} htmlFor="page">Página de Facebook</label>
+                <select id="page" className={input} value={pageId} onChange={(e) => { const id = e.target.value; setPageId(id); setBuildingForm(false); setFormId((createdForms[id] ?? options.pages.find((p) => p.id === id)?.forms ?? [])[0]?.id ?? ""); }}>
+                  {options.pages.length === 0 && <option value="">Sin páginas disponibles</option>}
+                  {options.pages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select></div>
+              <div><label className={label} htmlFor="form">Formulario instantáneo</label>
+                <select id="form" className={input} value={formId} onChange={(e) => setFormId(e.target.value)}>
+                  {!page?.forms.length && <option value="">Sin formularios activos</option>}
+                  {page?.forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+                {page?.formsError && <p className="mt-1 text-xs text-critical">No se pudieron leer los formularios: {page.formsError}</p>}
+                {pageId && !buildingForm && (
+                  <button type="button" onClick={() => setBuildingForm(true)} className="mt-1 text-sm font-medium text-accent hover:underline">+ Crear formulario</button>
+                )}
               </div>
             </div>
-            {i === ads.length - 1 && ads.length < 10 && (
-              <button type="button" onClick={() => setAds((x) => [...x, { ...newAd(x.length + 1), messages: [...ad.messages], headlines: [...ad.headlines], description: ad.description, cta: ad.cta }])}
-                className="text-sm font-medium text-accent hover:underline">+ Agregar otro anuncio (copia los textos de este)</button>
+            {buildingForm && pageId && (
+              <LeadFormBuilder pageId={pageId} pageName={page?.name ?? ""} pageAvatar={page?.picture} apiBase={apiBase} onCancel={() => setBuildingForm(false)}
+                onCreated={(f) => {
+                  setCreatedForms((x) => ({ ...x, [pageId]: [f, ...(x[pageId] ?? [])] }));
+                  setFormId(f.id);
+                  setBuildingForm(false);
+                }} />
             )}
+          </MetaCard>
+
+          <MetaCard title="Presupuesto y calendario">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label className={label} htmlFor="budget">Presupuesto diario</label>
+                <div className="relative"><span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-ink-3">$</span>
+                  <input id="budget" className={`${input} pl-6 tabular-nums`} inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} /></div>
+                <p className="mt-1 text-xs text-ink-3">USD. Meta puede gastar un poco más algunos días y menos otros.</p></div>
+              <div />
+              <div><label className={label} htmlFor="start">Fecha de inicio</label>
+                <input id="start" type="datetime-local" className={input} value={start} onChange={(e) => setStart(e.target.value)} />
+                <p className="mt-1 text-xs text-ink-3">Vacío = empieza cuando lo actives.</p></div>
+              <div><label className={label} htmlFor="end">Fecha de finalización (opcional)</label>
+                <input id="end" type="datetime-local" className={input} value={end} onChange={(e) => setEnd(e.target.value)} /></div>
+            </div>
+          </MetaCard>
+
+          <MetaCard title="Público">
+            <fieldset>
+              <legend className={label}>Ubicaciones</legend>
+              <label className="mr-4 inline-flex items-center gap-1.5 text-sm"><input type="radio" checked={allUS} onChange={() => setAllUS(true)} /> Estados Unidos</label>
+              <label className="inline-flex items-center gap-1.5 text-sm"><input type="radio" checked={!allUS} onChange={() => setAllUS(false)} /> Estados específicos {regions.length ? `(${regions.length})` : ""}</label>
+              {!allUS && (
+                <div className="mt-2 rounded-lg border border-line p-2">
+                  <input className={`${input} mb-2`} placeholder="Buscar estado…" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} />
+                  <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto text-sm sm:grid-cols-4">
+                    {visibleRegions.map((r) => (
+                      <label key={r.key} className="flex items-center gap-1.5">
+                        <input type="checkbox" checked={regions.includes(r.key)}
+                          onChange={(e) => setRegions((x) => (e.target.checked ? [...x, r.key] : x.filter((k) => k !== r.key)))} /> {r.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </fieldset>
+            {category === "NONE" ? (
+              <div className="grid max-w-xs grid-cols-2 gap-3">
+                <div><label className={label} htmlFor="amin">Edad mínima</label><input id="amin" className={input} inputMode="numeric" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} placeholder="18" /></div>
+                <div><label className={label} htmlFor="amax">Edad máxima</label><input id="amax" className={input} inputMode="numeric" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} placeholder="65+" /></div>
+              </div>
+            ) : (
+              <div><span className={label}>Edad</span><p className="text-sm text-ink">18 - 65+</p>
+                <p className="text-xs text-ink-3">Con categoría especial, Meta no permite filtrar por edad ni género.</p></div>
+            )}
+            {options.locales.length > 0 && (
+              <fieldset>
+                <legend className={label}>Idiomas (vacío = todos)</legend>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {options.locales.map((l) => (
+                    <label key={l.key} className="inline-flex items-center gap-1.5">
+                      <input type="checkbox" checked={locales.includes(l.key)}
+                        onChange={(e) => setLocales((x) => (e.target.checked ? [...x, l.key] : x.filter((k) => k !== l.key)))} /> {l.name}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          </MetaCard>
+
+          <MetaCard title="Ubicaciones" help="Ubicaciones manuales: elige en qué plataformas se muestra el anuncio.">
+            <fieldset className="flex flex-wrap gap-4 text-sm">
+              <legend className="sr-only">Plataformas</legend>
+              <label className="inline-flex items-center gap-1.5"><input type="checkbox" checked={facebook} onChange={(e) => setFacebook(e.target.checked)} /> Facebook</label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={instagram && !!page?.instagram} disabled={!page?.instagram} onChange={(e) => setInstagram(e.target.checked)} />
+                Instagram {page?.instagram ? `(@${page.instagram.username ?? page.instagram.id})` : <span className="text-ink-3">— la página no tiene Instagram vinculado</span>}
+              </label>
+            </fieldset>
+          </MetaCard>
+        </div>
+
+        {/* ── Anuncios ── */}
+        {ads.map((ad, i) => (
+          <div key={ad.key} id={`anuncio-${ad.key}`} className="scroll-mt-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <LevelHeader level={2} title={ad.name.trim() || "Nuevo anuncio"} />
+              {ads.length > 1 && <button type="button" onClick={() => setAds((x) => x.filter((a) => a.key !== ad.key))} className="text-sm text-ink-3 hover:text-critical">Eliminar anuncio</button>}
+            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+              <div className="min-w-0 space-y-3">
+                <MetaCard title="Nombre del anuncio">
+                  <input className={input} value={ad.name} onChange={(e) => updateAd(ad.key, { name: e.target.value })} aria-label="Nombre del anuncio" />
+                </MetaCard>
+                <MetaCard title="Identidad">
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                    <span className="inline-flex items-center gap-2"><Avatar src={page?.picture} name={page?.name ?? "?"} className="size-6" />{page?.name ?? "Sin página"}</span>
+                    <span className="inline-flex items-center gap-2 text-ink-2">
+                      {page?.instagram
+                        ? <><Avatar src={page.instagram.picture} name={page.instagram.username ?? "IG"} className="size-6" />@{page.instagram.username ?? page.instagram.id}</>
+                        : "Instagram: usa la página de Facebook"}
+                    </span>
+                  </div>
+                </MetaCard>
+                <MetaCard title="Contenido multimedia" help="Recomendado: 1080×1080 (cuadrado) o 1080×1350 (vertical). JPG, PNG, MP4 o MOV.">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-line bg-surface-2 p-3 text-sm hover:border-accent">
+                    <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface text-ink-3">
+                      {ad.media
+                        ? (ad.media.kind === "image" ? <img src={ad.media.preview} alt="" className="size-full object-cover" /> : <video src={ad.media.preview} className="size-full object-cover" muted />)
+                        : <Icon name="image" className="size-6" />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium text-accent">{ad.uploading ? "Subiendo…" : ad.media ? "Cambiar imagen o video" : "Agregar imagen o video"}</span>
+                      <span className="block truncate text-xs text-ink-3">{ad.media ? ad.media.fileName : `Hasta ${MAX_MB} MB`}</span>
+                    </span>
+                    <input type="file" accept={ACCEPT} className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(ad.key, f); }} />
+                  </label>
+                  {ad.uploadError && <p className="text-xs text-critical">{ad.uploadError}</p>}
+                </MetaCard>
+                <MetaCard title="Texto principal" help="Agrega hasta 5 opciones. Meta combina textos y títulos y muestra a cada persona la que mejor le funciona.">
+                  <Variants title="Texto principal" values={ad.messages} multiline shown={SHOWN.message} idPrefix={`msg${ad.key}`}
+                    onChange={(messages) => updateAd(ad.key, { messages })} />
+                </MetaCard>
+                <MetaCard title="Título">
+                  <Variants title="Título" values={ad.headlines} shown={SHOWN.headline} idPrefix={`hl${ad.key}`}
+                    onChange={(headlines) => updateAd(ad.key, { headlines })} />
+                </MetaCard>
+                <MetaCard title="Descripción" help="Opcional.">
+                  <input id={`ds${ad.key}`} aria-label="Descripción" className={input} value={ad.description} onChange={(e) => updateAd(ad.key, { description: e.target.value })} />
+                  <LimitHint value={ad.description} limit={SHOWN.description} kind="soft" />
+                </MetaCard>
+                <MetaCard title="Llamada a la acción">
+                  <select id={`cta${ad.key}`} aria-label="Llamada a la acción" className={`${input} sm:max-w-xs`} value={ad.cta} onChange={(e) => updateAd(ad.key, { cta: e.target.value as Cta })}>
+                    {CTAS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </MetaCard>
+                {i === ads.length - 1 && ads.length < 10 && (
+                  <button type="button" onClick={() => setAds((x) => [...x, { ...newAd(x.length + 1), messages: [...ad.messages], headlines: [...ad.headlines], description: ad.description, cta: ad.cta }])}
+                    className="text-sm font-medium text-accent hover:underline">+ Duplicar anuncio (copia los textos de este)</button>
+                )}
+              </div>
+              <div className="xl:sticky xl:top-4 xl:self-start">
+                <div className="card p-4">
+                  <AdPreview pageName={page?.name ?? "Tu página"} pageAvatar={page?.picture}
+                    instagramUsername={page?.instagram?.username} instagramAvatar={page?.instagram?.picture}
+                    messages={ad.messages} headlines={ad.headlines} description={ad.description} ctaLabel={ctaLabel(ad.cta)}
+                    media={ad.media ? { kind: ad.media.kind, src: ad.media.preview } : null}
+                    facebook={facebook} instagram={instagram && !!page?.instagram} />
+                </div>
+              </div>
+            </div>
           </div>
         ))}
-      </Section>
 
-      <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
-        <p className="text-sm text-ink-2">
-          {missing.length ? <>Falta: {missing.join(", ")}.</> : <>Se creará <strong>en pausa</strong>: no gasta hasta que la actives.</>}
-        </p>
-        <button type="button" disabled={missing.length > 0 || uploading || sending} onClick={submit}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">
-          {sending ? "Creando en Meta… (puede tardar con videos)" : "Crear campaña en pausa"}
-        </button>
-        {result && !result.ok && <p role="alert" className="w-full text-sm text-critical">{result.error}</p>}
+        {/* Barra inferior como la de Ads Manager */}
+        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="min-w-0 flex-1 text-sm text-ink-2">
+            {missing.length ? <>Falta: {missing.join(", ")}.</> : <>Listo para publicar. Se creará <strong>en pausa</strong>.</>}
+          </p>
+          {publishButton}
+          {result && !result.ok && <p role="alert" className="w-full text-sm text-critical">{result.error}</p>}
+        </div>
       </div>
     </div>
   );
@@ -348,7 +411,7 @@ function Variants({ title, hint, values, onChange, multiline = false, shown, idP
   const set = (i: number, v: string) => onChange(values.map((x, j) => (j === i ? v : x)));
   return (
     <fieldset className="space-y-2">
-      <legend className={label}>{title}{values.length > 1 ? ` (${values.length} opciones)` : ""}</legend>
+      <legend className="sr-only">{title}</legend>
       {values.map((v, i) => (
         <div key={i}>
           <div className="flex items-start gap-2">

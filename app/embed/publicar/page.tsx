@@ -35,7 +35,7 @@ export default async function EmbedPublicarPage({ searchParams }: { searchParams
     return <main className="p-6 text-sm text-critical">No se pudieron leer las opciones de Meta. Revisa los logs de Vercel (embed.publicar).</main>;
   }
   return (
-    <main className="mx-auto max-w-5xl space-y-5 px-4 py-6">
+    <main className="mx-auto max-w-7xl space-y-5 px-4 py-6">
       <header>
         <h1 className="text-xl font-semibold tracking-tight text-ink">Publicar campaña</h1>
         <p className="mt-0.5 text-sm text-ink-3">Se crea en pausa en Meta. Sesión: {access.email}</p>
