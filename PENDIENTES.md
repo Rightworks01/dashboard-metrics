@@ -1,7 +1,7 @@
 # Pendientes y contexto para retomar — Centro de Control Right Works
 
 Lee primero `CLAUDE.md` (reglas, arquitectura en 3 capas y estado de cada función). Este archivo solo guarda
-lo que NO está ahí: dónde vive cada cosa, reglas de trabajo y lo que quedó a medias. Actualizado: 2026-11-27.
+lo que NO está ahí: dónde vive cada cosa, reglas de trabajo y lo que quedó a medias. Actualizado: 2026-11-28.
 
 ## Dónde vive cada cosa
 - **Código**: GitHub `Rightworks01/dashboard-metrics`, rama `main` (Vercel publica cada push a `main`).
@@ -27,7 +27,14 @@ lo que NO está ahí: dónde vive cada cosa, reglas de trabajo y lo que quedó a
    confirmar la cuenta de Instagram ligada a la página, y dar a RightWorksSync los permisos `pages_manage_posts`,
    `instagram_basic`, `instagram_content_publish`.
 2. **Actualización de seguridad de Next.js** 16.4.3 → 16.4.6: se le preguntó a la dueña y no respondió.
-3. **Sin probar contra Meta**: crear formularios instantáneos y anuncios con varias opciones de texto (Publicar).
+3. **Publicar: la app de Meta está en modo de desarrollo (probado el 2026-11-28)**. Prueba directa contra Meta con el
+   mismo envío que `publish.ts`: el formulario instantáneo se crea bien (todas las partes llegan; quedó
+   "PRUEBA – no usar (Claude)", id `1739922991138774`, en la página RightWorks `1328978853641918` — archivarlo al terminar).
+   Campaña y conjunto también. El creativo falla SIEMPRE (con o sin varias opciones de texto): error 1885183 "se creó con
+   una app en modo de desarrollo; debe estar en modo público". App = "RIGTH WORKS" (`1651265526505271`). Falta: que la
+   dueña la pase a modo Activo en developers.facebook.com (pide URL de política de privacidad) y repetir la prueba de
+   las variantes (`asset_feed_spec` + DEGREES_OF_FREEDOM). La campaña de prueba se borró. La página RightWorks no tiene
+   Instagram conectado (o RightWorksSync no lo ve): afecta a Publicar en Instagram y al pendiente 1.
 4. **SSO**: funciona desde la app del menú lateral (`auth.sso.ok` en los registros). El widget IFrame de un Dashboard
    de GHL no entrega el usuario: ahí solo login manual. Falta comprobar con una sesión real que un User de GHL ve solo
    Leads, Audiencia y Respuesta, y que su nombre sale en vez de su ID tras volver a entrar (commit `3d5154a`).
